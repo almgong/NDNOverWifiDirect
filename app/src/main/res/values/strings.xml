@@ -13,4 +13,5 @@
     <string name="permission_rationale">"Contacts permissions are needed for providing email
         completions."
     </string>
+    <string name="prompt_prefix">"NDN prefix to advertise (/ndn/vid1.mp4)"</string>
 </resources>
