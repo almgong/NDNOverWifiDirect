@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import ag.ndn.ndnoverwifidirect.services.WiFiDirectBroadcastReceiver;
+import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
 /**
  * Logic flow:
@@ -28,12 +29,14 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
 
+    private NDNOverWifiDirect mController;    // handler for ndn over wifidirect
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Log.d(TAG, "Init WifiP2P");
+        Log.d(TAG, "Init WifiP2P for this app");
         initWifiP2p();
 
         Log.d(TAG, "Enumerate intent filer");
@@ -43,18 +46,17 @@ public class MainActivity extends AppCompatActivity {
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
+        Log.d(TAG, "Start using NDNOverWifiDirect interface...");
         Log.d(TAG, "Discover peers");
-        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                Log.d(TAG, "Success on discovering peers");
-            }
+        try {
+            mController.discoverPeers(mManager, mChannel);
 
-            @Override
-            public void onFailure(int reasonCode) {
-                Log.d(TAG, "Fail discover peers");
-            }
-        });
+            // call init() that will run in the background discover peers every so often
+            // discoverPeers() should update FIB entries with the correct information
+        } catch (Exception e) {
+            //
+        }
+
     }
 
     /* initialize manager and receiver for activity */
@@ -62,6 +64,8 @@ public class MainActivity extends AppCompatActivity {
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
         mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
+
+        mController = NDNOverWifiDirect.getInstance();
     }
 
     /* register the broadcast receiver with the intent values to be matched */
