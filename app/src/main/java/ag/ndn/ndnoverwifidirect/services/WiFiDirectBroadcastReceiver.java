@@ -4,11 +4,14 @@ import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
 import android.util.Log;
+
+import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
 /**
  * Created by allengong on 7/5/16.
@@ -22,7 +25,9 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
     private WifiP2pManager mManager;
     private Channel mChannel;
     private Activity mActivity;
-    private PeerListListener myPeerListListener;
+
+    // singleton controller to access NFD, etc.
+    private NDNOverWifiDirect mController;
 
     public WiFiDirectBroadcastReceiver(WifiP2pManager manager, Channel channel,
                                        Activity activity) { // was MyWifiActivity
@@ -30,6 +35,8 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
         this.mManager = manager;
         this.mChannel = channel;
         this.mActivity = activity;
+
+        this.mController = NDNOverWifiDirect.getInstance();
     }
 
     @Override
@@ -66,6 +73,17 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                         Log.d(TAG,
                                 String.format("woo peers available: %d", peers.getDeviceList().size()));
 
+                        // ideally want to check if peers are new, and add to some rolling list
+                        for (WifiP2pDevice device : peers.getDeviceList()) {
+                            Log.d(TAG, "Address: " + device.deviceAddress);
+                            String faceUri = "tcp://%s";
+
+                            try {
+                                mController.faceCreate(String.format(faceUri, device.deviceAddress));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
                     }
                 });
             }

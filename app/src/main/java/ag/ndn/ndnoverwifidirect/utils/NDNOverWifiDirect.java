@@ -6,6 +6,13 @@ import android.content.IntentFilter;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 
+import com.intel.jndn.management.ManagementException;
+
+import net.named_data.jndn_xx.util.FaceUri;
+
+import java.util.HashSet;
+import java.util.Set;
+
 import ag.ndn.ndnoverwifidirect.services.WiFiDirectBroadcastReceiver;
 
 /**
@@ -22,7 +29,10 @@ public class NDNOverWifiDirect extends NfdcHelper {
 
     // singleton
     private static NDNOverWifiDirect singleton;
+
+    // members
     private static final String TAG = "NDNOverWifiDirect";
+    private Set<String> activeFaceUris = new HashSet<String>(); // O(1) access to registered faces
 
     public static NDNOverWifiDirect getInstance() {
 
@@ -33,6 +43,7 @@ public class NDNOverWifiDirect extends NfdcHelper {
         return singleton;
     }
 
+    // checks for peers, if new peers then broadcast will be sent for PEERS_CHANGED
     public void discoverPeers(WifiP2pManager mManager,WifiP2pManager.Channel mChannel) throws Exception {
         //Log.d(TAG, generalStatus().getNfdVersion());
         mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
@@ -45,9 +56,23 @@ public class NDNOverWifiDirect extends NfdcHelper {
             @Override
             public void onFailure(int reasonCode) {
 
-                Log.d(TAG, "Fail discover peers");
+                Log.d(TAG, "Fail discover peers, reasoncode: " + reasonCode);
             }
         });
+    }
+
+
+    // overrides
+
+    @Override
+    public int
+    faceCreate(String faceUri) throws ManagementException, FaceUri.Error, FaceUri.CanonizeError {
+
+        if (!activeFaceUris.contains(faceUri)) {
+            activeFaceUris.add(faceUri);
+        }
+
+        return super.faceCreate(faceUri);
     }
 
 }
