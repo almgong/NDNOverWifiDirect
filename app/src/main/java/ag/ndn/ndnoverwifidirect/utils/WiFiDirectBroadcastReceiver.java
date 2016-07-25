@@ -1,4 +1,4 @@
-package ag.ndn.ndnoverwifidirect.services;
+package ag.ndn.ndnoverwifidirect.utils;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -74,12 +74,15 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                                 String.format("woo peers available: %d", peers.getDeviceList().size()));
 
                         // ideally want to check if peers are new, and add to some rolling list
+                        // use PeerList, which should expose diff methods, etc., to know what faces
+                        // to actually create, and which to destroy
                         for (WifiP2pDevice device : peers.getDeviceList()) {
                             Log.d(TAG, "Address: " + device.deviceAddress);
                             String faceUri = "tcp://%s";
 
                             try {
                                 mController.faceCreate(String.format(faceUri, device.deviceAddress));
+                                Log.d(TAG, String.format("Successfully created a new face [ %s ]", device.deviceAddress));
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }

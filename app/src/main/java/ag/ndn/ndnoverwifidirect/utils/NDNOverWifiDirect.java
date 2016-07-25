@@ -1,8 +1,5 @@
 package ag.ndn.ndnoverwifidirect.utils;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.IntentFilter;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 
@@ -12,8 +9,6 @@ import net.named_data.jndn_xx.util.FaceUri;
 
 import java.util.HashSet;
 import java.util.Set;
-
-import ag.ndn.ndnoverwifidirect.services.WiFiDirectBroadcastReceiver;
 
 /**
  * Interface specification for the family of classes that

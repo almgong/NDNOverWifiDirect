@@ -1,5 +1,6 @@
 package ag.ndn.ndnoverwifidirect;
 
+import android.app.Fragment;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
@@ -8,8 +9,11 @@ import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
-import ag.ndn.ndnoverwifidirect.services.WiFiDirectBroadcastReceiver;
+import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
+import ag.ndn.ndnoverwifidirect.model.Peer;
+import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
 /**
@@ -20,16 +24,22 @@ import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
  *
  * Create a new Interface that bridges the gap between wifidirect and JNDN (NFDC) -- interface
  * should be analogous to the regular NFDC, but has changes that deals with wifidirect.
+ *
+ * TODO: Implement method of updating the list, and attach this logic to WifiDirect peers changed
+ * event. And so forth.
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements PeerFragment.OnListFragmentInteractionListener {
 
     private static final String TAG = "MainActivity";
+
     private WifiP2pManager mManager;
     private Channel mChannel;
     private BroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
 
     private NDNOverWifiDirect mController;    // handler for ndn over wifidirect
+
+    private Fragment peerFrag;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,5 +90,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         unregisterReceiver(mReceiver);
+    }
+
+    /* implement Fragment listener(s) to allow fragment communications */
+    @Override
+    public void onListFragmentInteraction(Peer peer) {
+        // when an item is clicked, this is ran
+        Log.d(TAG, "onListFragmentInteraction() called");
+        Toast.makeText(this, peer.getId(),Toast.LENGTH_SHORT).show();
+
+
     }
 }

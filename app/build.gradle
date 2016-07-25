@@ -16,6 +16,9 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+        debug {
+            debuggable true
+        }
     }
 }
 
@@ -26,9 +29,11 @@ repositories {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
+    compile group: 'net.named-data', name: 'jndn', version: '0.13'
     compile 'com.android.support:appcompat-v7:22.2.1'
     compile 'com.android.support:design:22.2.1'
-    compile group: 'net.named-data', name: 'jndn', version: '0.13'
     compile 'net.named-data.jndn-xx:jndn-xx-util:0.0.1'
     compile 'com.intel.jndn.management:jndn-management:1.1.2'
+    compile 'com.android.support:support-v4:22.2.1'
+    compile 'com.android.support:recyclerview-v7:22.2.1'
 }
