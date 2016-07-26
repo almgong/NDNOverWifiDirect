@@ -39,12 +39,12 @@ public class NDNOverWifiDirect extends NfdcHelper {
     }
 
     // checks for peers, if new peers then broadcast will be sent for PEERS_CHANGED
-    public void discoverPeers(WifiP2pManager mManager,WifiP2pManager.Channel mChannel) throws Exception {
-        //Log.d(TAG, generalStatus().getNfdVersion());
+    public void discoverPeers(WifiP2pManager mManager, WifiP2pManager.Channel mChannel) throws Exception {
+
         mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-
+                // WIFI_P2P_PEERS_CHANGED_ACTION intent sent!!
                 Log.d(TAG, "Success on discovering peers");
             }
 

@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
 import ag.ndn.ndnoverwifidirect.model.Peer;
+import ag.ndn.ndnoverwifidirect.model.PeerList;
 import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
@@ -45,6 +46,8 @@ public class MainActivity extends AppCompatActivity implements PeerFragment.OnLi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // handle for the list fragment
 
         Log.d(TAG, "Init WifiP2P for this app");
         initWifiP2p();
@@ -99,6 +102,10 @@ public class MainActivity extends AppCompatActivity implements PeerFragment.OnLi
         Log.d(TAG, "onListFragmentInteraction() called");
         Toast.makeText(this, peer.getId(),Toast.LENGTH_SHORT).show();
 
-
+        Peer p = new Peer();
+        p.setId("id2");
+        p.setDeviceAddress("address2");
+        PeerList.addPeer(p);
+        PeerFragment.notifyDataChanged();
     }
 }

@@ -11,12 +11,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ListAdapter;
 
 //import ag.ndn.ndnoverwifidirect.R;
 import ag.ndn.ndnoverwifidirect.R;
 import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.model.PeerList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -32,6 +34,7 @@ public class PeerFragment extends Fragment {
     // TODO: Customize parameters
     private int mColumnCount = 1;
     private OnListFragmentInteractionListener mListener;
+    private static PeerRecyclerViewAdapter adapter;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -50,6 +53,12 @@ public class PeerFragment extends Fragment {
         return fragment;
     }
 
+    // publicly accessible handle to notify this fragment of changed data
+    // in list of peers
+    public static void notifyDataChanged() {
+        adapter.notifyDataSetChanged();
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,6 +66,9 @@ public class PeerFragment extends Fragment {
         if (getArguments() != null) {
             mColumnCount = getArguments().getInt(ARG_COLUMN_COUNT);
         }
+
+        // initial value
+        adapter = new PeerRecyclerViewAdapter(PeerList.getPeers(), mListener);
     }
 
     @Override
@@ -75,8 +87,12 @@ public class PeerFragment extends Fragment {
             }
             Peer peer = new Peer();
             peer.setId("id");
+            peer.setDeviceAddress("a device address::::");
             PeerList.addPeer(peer);
-            recyclerView.setAdapter(new PeerRecyclerViewAdapter(PeerList.getPeers(), mListener));
+
+            adapter.notifyDataSetChanged();
+
+            recyclerView.setAdapter(adapter);
         }
         return view;
     }

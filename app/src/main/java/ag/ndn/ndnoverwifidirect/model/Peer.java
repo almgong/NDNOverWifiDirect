@@ -1,5 +1,7 @@
 package ag.ndn.ndnoverwifidirect.model;
 
+import android.location.Address;
+
 /**
  * Represents a WifiDirect Peer.
  *
@@ -8,6 +10,8 @@ package ag.ndn.ndnoverwifidirect.model;
 public class Peer {
 
     private String id;
+
+    private String deviceAddress;
 
     public Peer() {}
 
@@ -19,9 +23,19 @@ public class Peer {
         this.id = id;
     }
 
-    // for display
+    public String getDeviceAddress() {
+        return deviceAddress;
+    }
+
+    public void setDeviceAddress(String deviceAddress) {
+        this.deviceAddress = deviceAddress;
+    }
+
     @Override
     public String toString() {
-        return id;
+        return "Peer{" +
+                "id='" + id + '\'' +
+                ", deviceAddress='" + deviceAddress + '\'' +
+                '}';
     }
 }
