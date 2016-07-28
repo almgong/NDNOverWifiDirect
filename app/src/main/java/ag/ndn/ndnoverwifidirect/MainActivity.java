@@ -3,6 +3,7 @@ package ag.ndn.ndnoverwifidirect;
 import android.app.Fragment;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.IntentFilter;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
@@ -11,9 +12,12 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.util.HashMap;
+
 import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
 import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.model.PeerList;
+import ag.ndn.ndnoverwifidirect.utils.IPAddress;
 import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
@@ -35,7 +39,7 @@ public class MainActivity extends AppCompatActivity implements PeerFragment.OnLi
 
     private WifiP2pManager mManager;
     private Channel mChannel;
-    private BroadcastReceiver mReceiver;
+    private WiFiDirectBroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
 
     private NDNOverWifiDirect mController;    // handler for ndn over wifidirect
@@ -100,12 +104,9 @@ public class MainActivity extends AppCompatActivity implements PeerFragment.OnLi
     public void onListFragmentInteraction(Peer peer) {
         // when an item is clicked, this is ran
         Log.d(TAG, "onListFragmentInteraction() called");
-        Toast.makeText(this, peer.getId(),Toast.LENGTH_SHORT).show();
-
-        Peer p = new Peer();
-        p.setId("id2");
-        p.setDeviceAddress("address2");
-        PeerList.addPeer(p);
-        PeerFragment.notifyDataChanged();
+        //Toast.makeText(this, "Connecting to peer: " + peer.getId(),Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "My IP address: " + IPAddress.getDottedDecimalIP(IPAddress.getLocalIPAddress())
+        ,Toast.LENGTH_SHORT).show();
+        mReceiver.connectToPeer(peer);
     }
 }
