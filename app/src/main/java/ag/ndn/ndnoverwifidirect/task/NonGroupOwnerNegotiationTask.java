@@ -14,6 +14,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 
 /**
+ * Task for non-group owner to send their IP to the group owner.
  * Created by allengong on 7/26/16.
  */
 public class NonGroupOwnerNegotiationTask extends AsyncTask<Void, Void, String> {

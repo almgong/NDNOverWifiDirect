@@ -1,5 +1,7 @@
 package ag.ndn.ndnoverwifidirect.utils;
 
+import android.util.Log;
+
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -30,6 +32,7 @@ public class IPAddress {
         } catch (SocketException ex) {
             //Log.e("AndroidNetworkAddressFactory", "getLocalIPAddress()", ex);
         } catch (NullPointerException ex) {
+            ex.printStackTrace();
             //Log.e("AndroidNetworkAddressFactory", "getLocalIPAddress()", ex);
         }
         return null;

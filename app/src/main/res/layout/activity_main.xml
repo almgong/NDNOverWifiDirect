@@ -15,4 +15,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!--<android.support.v7.widget.AppCompatButton
+        android:id="@+id/send_reg_interest_button"
+        android:text="Send registration interest"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />-->
+
 </RelativeLayout>
