@@ -15,20 +15,27 @@ import java.util.Enumeration;
  */
 public class IPAddress {
 
-    public static byte[] getLocalIPAddress() {
+    public static String getLocalIPAddress() {
         try {
+            byte[] ip = null;
             for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
                 NetworkInterface intf = en.nextElement();
                 for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
                     InetAddress inetAddress = enumIpAddr.nextElement();
                     if (!inetAddress.isLoopbackAddress()) {
                         if (inetAddress instanceof Inet4Address) { // fix for Galaxy Nexus. IPv4 is easy to use :-)
-                            return inetAddress.getAddress();
+                            ip = inetAddress.getAddress();
+                            String niceIp = getDottedDecimalIP(ip);
+                            if (niceIp.startsWith("192.168.49")) {  // wifid ip's are all in 192.168.49.x range
+                                return niceIp;
+                            }
                         }
                         //return inetAddress.getHostAddress().toString(); // Galaxy Nexus returns IPv6
                     }
                 }
             }
+
+            return null;
         } catch (SocketException ex) {
             //Log.e("AndroidNetworkAddressFactory", "getLocalIPAddress()", ex);
         } catch (NullPointerException ex) {
@@ -38,7 +45,7 @@ public class IPAddress {
         return null;
     }
 
-    public static String getDottedDecimalIP(byte[] ipAddr) {
+    private static String getDottedDecimalIP(byte[] ipAddr) {
         //convert to dotted decimal notation:
         String ipAddrStr = "";
         for (int i=0; i<ipAddr.length; i++) {

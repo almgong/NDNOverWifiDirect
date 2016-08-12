@@ -25,7 +25,7 @@ import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
 import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
 
 /**
- * Interface specification for the family of classes that
+ * Interface implementation for the family of classes that
  * encapsulate WifiDirect logic under the familiar NFD
  * interface.
  *
@@ -54,9 +54,12 @@ public class NDNOverWifiDirect extends NfdcHelper {
 
     // members
     private static final String TAG = "NDNOverWifiDirect";
-    private Set<String> activePeerIps = new HashSet<>();   // holds ips of ALL peers currently registered with owner
-    //private Set<String> activeFaceUris = new HashSet<>();
-    private HashMap<String, Face> faceMap = new HashMap<>();// any created faces logged here
+
+    // { peerIP : Face }, any created faces using "new" logged here - good for MANUALLY selecting faces
+    private HashMap<String, Face> faceMap = new HashMap<>();
+
+    // { peerIp : faceId }, all faces created using Nfdc's faceCreate. one-to-one relationship
+    private HashMap<String, Integer> peerToFaceMap = new HashMap<>();
 
     public static NDNOverWifiDirect getInstance() {
 
@@ -71,20 +74,27 @@ public class NDNOverWifiDirect extends NfdcHelper {
      * Logs the created face so no duplicates are made.
      * @param faceUri Unique faceuri (e.g. ip)
      * @param face NDN Face instance that uses the above faceUri
+     * @return boolean indicating if the face was added to the map
      */
-    public void logFace(String faceUri, Face face) {
+    public boolean logFace(String faceUri, Face face) {
         if (!faceMap.containsKey(faceUri)) {
             faceMap.put(faceUri, face);
+            return true;
         }
+
+        return false;
     }
 
     /**
      * Retrieve a registered/logged Face instance given its URI
      * @param uri
-     * @return
+     * @return a Face instance with the given URI, or null
      */
     public Face getFaceByUri(String uri) {
-        return faceMap.get(uri);            // uri identifies the peer
+        if (faceMap.containsKey(uri)) {
+            return faceMap.get(uri);            // uri identifies the peer
+        }
+        return null;
     }
 
     /**
@@ -93,6 +103,37 @@ public class NDNOverWifiDirect extends NfdcHelper {
      */
     public Set<String> enumerateLoggedFaces() {
         return faceMap.keySet();
+    }
+
+    /**
+     * Logs peerIp to Face Id relationship. Each peer will have at most one
+     * face created for him and logged here.
+     * @param peerIp host/wifid ip
+     * @param faceId integer face id
+     * @return true if new record added to index, else false
+     */
+    public boolean logPeerToFaceId(String peerIp, int faceId) {
+
+        if (!peerToFaceMap.containsKey(peerIp)) {
+            peerToFaceMap.put(peerIp, faceId);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Given a peer's ip, removes the peer from all indexes.
+     * @param peerIp the WifiDirect IP of the peer
+     */
+    public void removePeer(String peerIp) {
+
+        // remove from faceMap
+        faceMap.remove(peerIp);
+
+        // remove from peer to face id index
+        peerToFaceMap.remove(peerIp);
+
     }
 
     // checks for peers, if new peers then broadcast will be sent for PEERS_CHANGED
@@ -131,6 +172,23 @@ public class NDNOverWifiDirect extends NfdcHelper {
            SendInterestTask task = new SendInterestTask(interest, faceMap.get(faceUri));
             task.execute();
         }
+    }
+
+    // uses TCP as transport protocol, creates face and registers RIB entry(ies)
+    // let NFD automatically destroy faces
+    public void createFace(String peerIp, String[] prefixesToRegister) {
+        if (peerToFaceMap.containsKey(peerIp)) {
+            // this means this face already exists, destroy the face and let it be recreated
+            try {
+                faceDestroy(peerToFaceMap.get(peerIp));
+            } catch (Exception e) {
+                e.printStackTrace();
+                return;
+            }
+        }
+
+        FaceCreateTask task = new FaceCreateTask(peerIp, prefixesToRegister);
+        task.execute(String.format("tcp://%s", peerIp));
     }
 
     /**

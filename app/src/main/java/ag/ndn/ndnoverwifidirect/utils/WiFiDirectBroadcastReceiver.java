@@ -34,9 +34,12 @@ import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.List;
 
+import ag.ndn.ndnoverwifidirect.callback.RegisterOnData;
+import ag.ndn.ndnoverwifidirect.callback.RegisterOnInterest;
 import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
 import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.model.PeerList;
+import ag.ndn.ndnoverwifidirect.task.FaceCreateTask;
 import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
@@ -62,7 +65,9 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
     // singleton controller to access NFD, etc.
     private NDNOverWifiDirect mController;
 
+    // wifid ip addresses of group owner and self
     public static String groupOwnerAddress = "";
+    public static String myAddress = "";
 
     public WiFiDirectBroadcastReceiver(WifiP2pManager manager, Channel channel,
                                        Activity activity) { // was MyWifiActivity
@@ -156,6 +161,10 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
                         // group owner address
                         groupOwnerAddress = info.groupOwnerAddress.getHostAddress();
+
+                        // this device's address
+                        myAddress = IPAddress.getLocalIPAddress();
+
                         System.out.println("group owner address " + groupOwnerAddress);
                         // After the group negotiation, we can determine the group owner.
                         if (info.groupFormed && info.isGroupOwner) {
@@ -181,47 +190,11 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                                 OnInterestCallback cb = new OnInterestCallback() {
                                     @Override
                                     public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
-                                        Log.d(TAG, "Received interest with prefix " + interest.getName().toUri());
-
-                                        String[] interestNameArr = interest.getName().toUri().split("/");
-                                        String peerIp = interestNameArr[interestNameArr.length-1];
-
-                                        System.out.println("wowowowoowow got an interest!!");
-
-                                        // send an acknowledgement data packet
-                                        Data response = new Data();
-                                        response.setName(new Name(interest.getName().toUri()));
-
-                                        // generate hardcoded registration response
-                                        /*
-                                            MESSAGE\n
-                                            <NUMBER OF PEERS>
-                                            <LIST OF PEER IPs...>
-                                         */
-                                        String regRes = "Hi! Got your registration interest.\n";
-                                        regRes+= (NDNOverWifiDirect.getInstance().enumerateLoggedFaces().size()+"\n");
-                                        for (String ip : NDNOverWifiDirect.getInstance().enumerateLoggedFaces()) {
-                                            regRes += (ip + "\n");
-                                        }
-                                        Log.d(TAG, "Response: "+ regRes);
-                                        Blob payload = new Blob(regRes);
-                                        response.setContent(payload);
-
-                                        NDNOverWifiDirect.getInstance().logFace(peerIp, face);
-
-                                        try {
-                                            face.putData(response);
-                                            Log.d(TAG, "responded to interest: " + prefix.toUri());
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                        } catch (Exception e) {
-                                            e.printStackTrace();
-                                        }
-
-                                        //mStopProcessing = true;
-
+                                        (new RegisterOnInterest()).doJob(prefix, interest, face, interestFilterId,
+                                                filter);
                                     }
                                 };
+
                                 mController.registerPrefix(mFace, prefixToRegister, cb, true);
 
                             } catch (Exception e) {
@@ -233,24 +206,31 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                             // you'll want to create a client thread that connects to the group
                             // owner.
                             Log.d(TAG, "I am not the group owner, and my ip is: " +
-                                    IPAddress.getDottedDecimalIP(IPAddress.getLocalIPAddress()));
+                                    myAddress);
 
                             try {
-                                // create face at NFD level and log it for application
+                                // log initial faces, of group owner
                                 mController.logFace(groupOwnerAddress, new Face(groupOwnerAddress));
+                                mController.logFace("localhost", new Face("localhost"));
+                                Log.d(TAG, "Successfully logged faces to group owner and local host");
 
-                                Log.d(TAG, String.format("Successfully created a new face [ %s ]", groupOwnerAddress));
+                                //Face face = mController.getFaceByUri(groupOwnerAddress);
+                                Face face = mController.getFaceByUri("localhost");
 
-                                Face face = mController.getFaceByUri(groupOwnerAddress);
+                                // create face
+                                String[] prefixesToRegister = {"/ndn/wifid/register"};
+                                mController.createFace(groupOwnerAddress, prefixesToRegister);
+
+                                // on data callback
                                 OnData onDataCallback = new OnData() {
                                     @Override
                                     public void onData(Interest interest, Data data) {
-                                        Log.d(TAG,"Received data for registration interest: " + interest.getName().toUri());
-                                        Log.d(TAG, "data: " + data.getContent().toString());
+                                        (new RegisterOnData()).doJob(interest, data);
                                     }
                                 };
+
                                 mController.sendInterest(new Interest(new Name("/ndn/wifid/register/" +
-                                        IPAddress.getDottedDecimalIP(IPAddress.getLocalIPAddress()))),
+                                    myAddress)),
                                         face, onDataCallback);
 
                                 Log.d(TAG, "Registration Interest sent.");

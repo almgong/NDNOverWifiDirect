@@ -43,7 +43,7 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
         this.prefixToRegister = prefixes;
         this.onInterestCallback = cb;
         this.handleForever = forever;
-        this.mStopProcessing = false;   // default
+        this.mStopProcessing = true;   // default
     }
 
     // hardcoded responses for now

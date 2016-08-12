@@ -150,7 +150,7 @@ public class MainActivity extends AppCompatActivity implements PeerFragment.OnLi
         // when an item is clicked, this is ran
         Log.d(TAG, "onListFragmentInteraction() called");
 
-        Toast.makeText(this, "My IP address: " + IPAddress.getDottedDecimalIP(IPAddress.getLocalIPAddress())
+        Toast.makeText(this, "My IP address: " + IPAddress.getLocalIPAddress()
                 , Toast.LENGTH_SHORT).show();
         mReceiver.connectToPeer(peer);
     }
