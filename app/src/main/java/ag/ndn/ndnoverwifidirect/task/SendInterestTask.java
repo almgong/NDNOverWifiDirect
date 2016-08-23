@@ -40,7 +40,7 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
         };
     }
 
-    // constructor with ability to customize callback - probably will need to create a custom callback object/class
+    // constructor with ability to customize callback
     public SendInterestTask(Interest interest, Face face, OnData onData) {
         this.interest = interest;
         this.interest.setInterestLifetimeMilliseconds(10000);
@@ -64,14 +64,19 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
             KeyChain keyChain = NDNOverWifiDirect.getInstance().getKeyChain();
             mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
 
-            // will want to take as input, perhaps in constructor, a callback to pass
-            // into expressInterest() -- for now just print that you got data back
+            // simple
             mFace.expressInterest(this.interest, this.onDataCallback);
 
-            // Keep precessing events on the face (necessary)
+            // Keep precessing events on the face (necessary) - 10 times max
+            int counter = 0;
+            int numTries = 10000/1000 - 1; // TODO make this automatic and customizable by cstr
             while (!mStopProcessing) {  // should last until the response comes back
                 mFace.processEvents();
-                Thread.sleep(100);
+                if (counter++ > numTries) {
+                    Log.d(TAG, "Stop processing on face listening for interest: " + interest.getName().toUri());
+                    break;
+                }
+                Thread.sleep(1000);
             }
 
         } catch (Exception e) {

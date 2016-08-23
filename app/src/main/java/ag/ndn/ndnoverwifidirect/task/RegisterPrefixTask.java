@@ -37,13 +37,18 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
     private String prefixToRegister;
     private boolean mStopProcessing, handleForever;
 
+    private long processEventsTimer = 500;  // by default, every half second, process events
 
     public RegisterPrefixTask(Face f, String prefixes, OnInterestCallback cb, boolean forever) {
         this.mFace = f;
         this.prefixToRegister = prefixes;
         this.onInterestCallback = cb;
         this.handleForever = forever;
-        this.mStopProcessing = true;   // default
+        this.mStopProcessing = false;   // default
+    }
+
+    public void setProcessEventsTimer(long repeat) {
+        this.processEventsTimer = repeat;
     }
 
     // hardcoded responses for now
@@ -70,11 +75,11 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
                     },
                     flags);
 
-
             // Keep precessing events on the face (necessary)
             while (!mStopProcessing || handleForever) {  // should last forever
                 mFace.processEvents();
-                Thread.sleep(500);  // every .5 seconds, modulate as needed
+                //Log.d(TAG, "processing events for : " + prefixToRegister);
+                Thread.sleep(processEventsTimer);  // every 1.5 seconds, modulate as needed
             }
 
         } catch (Exception e) {

@@ -34,11 +34,11 @@ public class FaceCreateTask extends AsyncTask<String, Void, Integer> {
 
             // register desired forwarding prefixes, e.g. the "/ndn/wifid/register" registration prefix
             for (String prefix : prefixesToRegister) {
+                Log.d(TAG, "registering prefix: " + prefix);
                 mController.ribRegisterPrefix(new Name(prefix), faceId, 0, true, false);
             }
 
-
-            System.out.println("Successfully registered registration prefix");
+            System.out.println("Successfully registered " + prefixesToRegister.length + " prefixes");
 
         } catch (Exception e) {
             e.printStackTrace();

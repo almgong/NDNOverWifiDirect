@@ -26,11 +26,15 @@ import android.widget.Toast;
 
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
+import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
+import net.named_data.jndn.OnInterestCallback;
+import net.named_data.jndn.security.KeyChain;
 
 import java.util.HashMap;
 import java.util.jar.Manifest;
 
+import ag.ndn.ndnoverwifidirect.callback.RegisterOnInterest;
 import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
 import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.model.PeerList;
@@ -81,13 +85,16 @@ public class MainActivity extends AppCompatActivity implements PeerFragment.OnLi
         Log.d(TAG, "Start using NDNOverWifiDirect interface...");
         Log.d(TAG, "Discover peers");
         try {
+            mController.addPrefixHandled("/ndn/wifid/lord-of-the-rings/8/22");
+            mController.initialize();   // initializes this device for NDNOverWifid readiness
             mController.discoverPeers(mManager, mChannel);
 
             // call init() that will run in the background discover peers every so often
             // discoverPeers() should update FIB entries with the correct information
         } catch (Exception e) {
-            //
+            e.printStackTrace();
         }
+
 
         // layout elements
 
@@ -152,118 +159,23 @@ public class MainActivity extends AppCompatActivity implements PeerFragment.OnLi
 
         Toast.makeText(this, "My IP address: " + IPAddress.getLocalIPAddress()
                 , Toast.LENGTH_SHORT).show();
+
+
+
         mReceiver.connectToPeer(peer);
+        Log.d(TAG, "Sending registration interest again on click");
+
+        Face mFace = new Face("localhost");
+        Name n = new Name("/ndn/wifid/register/" + WiFiDirectBroadcastReceiver.groupOwnerAddress + "/" +
+        WiFiDirectBroadcastReceiver.myAddress);
+        try {
+            KeyChain keyChain = mController.getKeyChain();
+            mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
+        } catch(Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+        mController.sendInterest(new Interest(n), mFace);
     }
-
-
-    // temp
-
-//    /**
-//     * Method that binds the current activity to the NfdService.
-//     */
-//    private void
-//    bindNfdService() {
-//        if (!m_isNfdServiceConnected) {
-//            // Bind to Service
-//            this.bindService(new Intent(this, NfdService.class),
-//                    m_ServiceConnection, Context.BIND_AUTO_CREATE);
-//            Log.d(TAG, "MainFragment::bindNfdService()");
-//        }
-//    }
-//
-//    /**
-//     * Method that unbinds the current activity from the NfdService.
-//     */
-//    private void
-//    unbindNfdService() {
-//        if (m_isNfdServiceConnected) {
-//            // Unbind from Service
-//            this.unbindService(m_ServiceConnection);
-//            m_isNfdServiceConnected = false;
-//
-//            Log.d(TAG, "MainFragment::unbindNfdService()");
-//        }
-//    }
-//
-//    /**
-//     * Client ServiceConnection to NfdService.
-//     */
-//    private final ServiceConnection m_ServiceConnection = new ServiceConnection() {
-//        @Override
-//        public void
-//        onServiceConnected(ComponentName className, IBinder service) {
-//            // Establish Messenger to the Service
-//            m_nfdServiceMessenger = new Messenger(service);
-//            m_isNfdServiceConnected = true; // onServiceConnected runs on the main thread
-//
-//            // Check if NFD Service is running
-//            try {
-//                boolean shouldServiceBeOn = m_sharedPreferences.getBoolean(PREF_NFD_SERVICE_STATUS, true);
-//
-//                Message msg = Message.obtain(null, shouldServiceBeOn ? NfdService.START_NFD_SERVICE : NfdService.STOP_NFD_SERVICE);
-//                msg.replyTo = m_clientMessenger;
-//                m_nfdServiceMessenger.send(msg);
-//            } catch (RemoteException e) {
-//                // If Service crashes, nothing to do here
-//                Log.d(TAG, "onServiceConnected(): " + e);
-//            }
-//
-//            Log.d(TAG, "m_ServiceConnection::onServiceConnected()");
-//        }
-//
-//        @Override
-//        public void
-//        onServiceDisconnected(ComponentName componentName) {
-//            // In event of unexpected disconnection with the Service; Not expecting to get here.
-//            Log.d(TAG, "m_ServiceConnection::onServiceDisconnected()");
-//
-//            // Update UI
-//            //setNfdServiceDisconnected();
-//
-//            m_isNfdServiceConnected = false; // onServiceDisconnected runs on the main thread
-//            //m_handler.postDelayed(m_retryConnectionToNfdService, 1000);
-//        }
-//    };
-//
-//    /**
-//     * Client Message Handler.
-//     *
-//     * This handler is used to handle messages that are being sent back
-//     * from the NfdService to the current application.
-//     */
-//    private class ClientHandler extends Handler {
-//        @Override
-//        public void handleMessage(Message msg) {
-//            switch (msg.what) {
-//                case NfdService.NFD_SERVICE_RUNNING:
-//                    //setNfdServiceRunning();
-//                    Log.d(TAG, "ClientHandler: NFD is Running.");
-//
-//                    //m_handler.postDelayed(m_statusUpdateRunnable, 500);
-//                    break;
-//
-//                case NfdService.NFD_SERVICE_STOPPED:
-//                    //setNfdServiceStopped();
-//                    Log.d(TAG, "ClientHandler: NFD is Stopped.");
-//                    break;
-//
-//                default:
-//                    super.handleMessage(msg);
-//                    break;
-//            }
-//        }
-//    }
-//
-//    /** Flag that marks that application is connected to the NfdService */
-//    private boolean m_isNfdServiceConnected = false;
-//
-//    /** Client Message Handler */
-//    private final Messenger m_clientMessenger = new Messenger(new ClientHandler());
-//
-//    /** Messenger connection to NfdService */
-//    private Messenger m_nfdServiceMessenger = null;
-//
-//    private SharedPreferences m_sharedPreferences;
-//
-//    private static final String PREF_NFD_SERVICE_STATUS = "NFD_SERVICE_STATUS";
 }
