@@ -244,21 +244,29 @@ public class NDNOverWifiDirect extends NfdcHelper {
                 e.printStackTrace();
                 return;
             }
-        }
+        } else {
 
-        // else need to create a new face with these prefixes
-        FaceCreateTask task = new FaceCreateTask(peerIp, prefixesToRegister);
-        task.execute(String.format("tcp://%s", peerIp));
+            // else need to create a new face with these prefixes
+            FaceCreateTask task = new FaceCreateTask(peerIp, prefixesToRegister);
+            task.execute(String.format("tcp://%s", peerIp));
+        }
     }
 
     /**
-     * Registers the given prefix to the specified face.
+     * Registers the given prefix to the specified face. Indicates to NFD that this application
+     * handles the given prefix.
+     *
      * @param face NDN Face instance to register prefix on.
      * @param prefix string prefix, e.g. /ndn/wifid/register
      * @param handleForever boolean denoting whether the prefix should be advertised indefinitely
      */
     public void registerPrefix(Face face, String prefix, OnInterestCallback cb, boolean handleForever,
                                long repeatTimer) {
+
+        // TEMP, don't handle other peer's registration prefix TODO debug
+        if (!prefix.startsWith("/ndn/wifid/register")) {
+            addPrefixHandled(prefix);
+        }
 
         RegisterPrefixTask registerPrefixTask = new RegisterPrefixTask(face,
                 prefix, cb, handleForever);
@@ -304,6 +312,38 @@ public class NDNOverWifiDirect extends NfdcHelper {
         } catch (Exception e) {
             e.printStackTrace();
             return;
+        }
+
+        Log.d(TAG, "Registering the global registration prefix...");
+
+        // register the registration prefix if it has not already been registered - all peers must do this
+        if (!registrationPrefixComplete) {
+            Log.d(TAG, "Register the registration prefix...");
+
+            try {
+                KeyChain keyChain = getKeyChain();
+                mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
+            } catch (Exception e) {
+                e.printStackTrace();
+                return;
+            }
+
+            // all devices will register this prefix(/ndn/wifid/register/xxx.xxx.xxx) for basic info exchange
+            String prefixToRegister = "/ndn/wifid/register/" + IPAddress.getLocalIPAddress();
+            OnInterestCallback cb = new OnInterestCallback() {
+                @Override
+                public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
+                    Log.d(TAG, "On Global registration interest!!!");
+                    (new RegisterOnInterest()).doJob(prefix, interest, face, interestFilterId,
+                            filter);
+                }
+            };
+
+            registerPrefix(mFace, prefixToRegister, cb, true, 5000);
+            registrationPrefixComplete = true;
+
+        } else {
+            Log.d(TAG, "Registration prefix already registered, skipping...");
         }
     }
 }

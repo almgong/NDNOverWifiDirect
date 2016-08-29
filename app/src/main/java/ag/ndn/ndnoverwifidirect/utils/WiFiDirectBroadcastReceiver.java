@@ -168,35 +168,6 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                         // Use localhost to express OR handle registration, can use mController.getFaceByUri("localhost") as well
                         Face mFace = new Face("localhost");
 
-                        // register the registration prefix if it has not already been registered - all peers must do this
-                        if (!mController.getRegistrationPrefixComplete()) {
-                            Log.d(TAG, "Register the registration prefix...");
-
-                            try {
-                                KeyChain keyChain = mController.getKeyChain();
-                                mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                return;
-                            }
-
-                            // all devices will register this prefix(/ndn/wifid/register/xxx.xxx.xxx) for basic info exchange
-                            String prefixToRegister = "/ndn/wifid/register/" + myAddress;
-                            OnInterestCallback cb = new OnInterestCallback() {
-                                @Override
-                                public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
-                                    (new RegisterOnInterest()).doJob(prefix, interest, face, interestFilterId,
-                                            filter);
-                                }
-                            };
-
-                            mController.registerPrefix(mFace, prefixToRegister, cb, true, 5000);
-                            mController.setRegistrationPrefixComplete(true);
-
-                        } else {
-                            Log.d(TAG, "Registration prefix already registered, skipping...");
-                        }
-
                         System.out.println("group owner address " + groupOwnerAddress);
 
                         // After the group negotiation, we can determine the group owner.
@@ -208,6 +179,9 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                             Log.d(TAG, "I am the group owner");
                             isGroupOwner = true;
 
+                            // test
+                            mController.addPrefixHandled("/ndn/wifid/lord-of-the-rings/8/22");
+
                         } else if (info.groupFormed) {
                             // The other device acts as the client. In this case,
                             // you'll want to create a client thread that connects to the group
@@ -216,8 +190,8 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                                     myAddress);
 
                             Log.d(TAG, "handling dummy prefix at /ndn/wifid/megaman/8/22");
-                            mController.addPrefixHandled("/ndn/wifid/megaman/8/22");
-
+                            mController.addPrefixHandled("/ndn/wifid/megaman/8/28");
+                            mController.addPrefixHandled("/ndn/wifid/megaman/8/29");
                             try {
                                 // log initial faces, of group owner
                                 mController.logFace(groupOwnerAddress, new Face(groupOwnerAddress));

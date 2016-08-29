@@ -85,7 +85,6 @@ public class MainActivity extends AppCompatActivity implements PeerFragment.OnLi
         Log.d(TAG, "Start using NDNOverWifiDirect interface...");
         Log.d(TAG, "Discover peers");
         try {
-            mController.addPrefixHandled("/ndn/wifid/lord-of-the-rings/8/22");
             mController.initialize();   // initializes this device for NDNOverWifid readiness
             mController.discoverPeers(mManager, mChannel);
 

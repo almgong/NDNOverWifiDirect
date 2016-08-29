@@ -79,7 +79,7 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
             while (!mStopProcessing || handleForever) {  // should last forever
                 mFace.processEvents();
                 //Log.d(TAG, "processing events for : " + prefixToRegister);
-                Thread.sleep(processEventsTimer);  // every 1.5 seconds, modulate as needed
+                Thread.sleep(processEventsTimer);  // every x (e.g. 1500) milliseconds, modulate as needed
             }
 
         } catch (Exception e) {

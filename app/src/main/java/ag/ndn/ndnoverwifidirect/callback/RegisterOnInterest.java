@@ -44,7 +44,7 @@ public class RegisterOnInterest implements NDNCallBackOnInterest {
             <NUMBER OF PREFIXES YOU HANDLE>
             <LIST OF PREFIXES\n...>
          */
-        String regRes = "Hi! Got your registration interest - 8/22/2016.\n";
+        String regRes = "Hi! Got your registration interest - 8/28/2016.\n";
 
         // num peers
         regRes += (mController.enumerateLoggedFaces().size()+"\n");  // never includes localhost
