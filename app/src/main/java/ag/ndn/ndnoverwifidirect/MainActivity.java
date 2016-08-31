@@ -24,10 +24,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
+import net.named_data.jndn.OnData;
 import net.named_data.jndn.OnInterestCallback;
 import net.named_data.jndn.security.KeyChain;
 
@@ -174,7 +176,14 @@ public class MainActivity extends AppCompatActivity implements PeerFragment.OnLi
             e.printStackTrace();
             return;
         }
-
-        mController.sendInterest(new Interest(n), mFace);
+        Log.d(TAG, "manually sending interest");
+        n = new Name("/ndn/wifid/register/192.168.49.142/192.168.49.1");
+        mController.sendInterest(new Interest(n), mFace, new OnData() {
+            @Override
+            public void onData(Interest interest, Data data) {
+                Log.d(TAG, "wooooo");
+                System.out.println(data.toString());
+            }
+        });
     }
 }

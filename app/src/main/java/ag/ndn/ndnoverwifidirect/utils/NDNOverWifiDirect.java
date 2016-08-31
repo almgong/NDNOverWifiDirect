@@ -238,7 +238,7 @@ public class NDNOverWifiDirect extends NfdcHelper {
                 for (String prefix : prefixesToRegister) {
                     RibRegisterPrefixTask task = new RibRegisterPrefixTask(prefix, peerToFaceMap.get(peerIp),
                             0, true, false);
-                    task.execute();
+                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR); // no blocking of other async tasks
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -248,7 +248,7 @@ public class NDNOverWifiDirect extends NfdcHelper {
 
             // else need to create a new face with these prefixes
             FaceCreateTask task = new FaceCreateTask(peerIp, prefixesToRegister);
-            task.execute(String.format("tcp://%s", peerIp));
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, String.format("tcp://%s", peerIp));
         }
     }
 
@@ -319,7 +319,8 @@ public class NDNOverWifiDirect extends NfdcHelper {
         // register the registration prefix if it has not already been registered - all peers must do this
         if (!registrationPrefixComplete) {
             Log.d(TAG, "Register the registration prefix...");
-
+            mFace = new Face("localhost");
+            Log.d(TAG, "using a fresh new face");
             try {
                 KeyChain keyChain = getKeyChain();
                 mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
@@ -341,6 +342,7 @@ public class NDNOverWifiDirect extends NfdcHelper {
 
             registerPrefix(mFace, prefixToRegister, cb, true, 5000);
             registrationPrefixComplete = true;
+            Log.d(TAG, "WOOOO");
 
         } else {
             Log.d(TAG, "Registration prefix already registered, skipping...");
