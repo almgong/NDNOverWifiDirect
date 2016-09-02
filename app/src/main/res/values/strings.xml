@@ -16,4 +16,5 @@
     <string name="prompt_prefix">"NDN prefix to advertise (/ndn/vid1.mp4)"</string>
     <string name="title_activity_producer">ProducerActivity</string>
     <string name="title_activity_consumer">ConsumerActivity</string>
+    <string name="title_activity_landing">Landing</string>
 </resources>
