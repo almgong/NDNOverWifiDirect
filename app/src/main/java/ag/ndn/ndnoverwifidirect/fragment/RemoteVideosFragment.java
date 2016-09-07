@@ -3,6 +3,7 @@ package ag.ndn.ndnoverwifidirect.fragment;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
@@ -11,13 +12,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import ag.ndn.ndnoverwifidirect.R;
-import ag.ndn.ndnoverwifidirect.R;
-import ag.ndn.ndnoverwifidirect.model.Peer;
-import ag.ndn.ndnoverwifidirect.model.PeerList;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import ag.ndn.ndnoverwifidirect.R;
+import ag.ndn.ndnoverwifidirect.model.PeerList;
+import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResource;
+import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResourceList;
 
 /**
  * A fragment representing a list of Items.
@@ -25,36 +26,39 @@ import java.util.List;
  * Activities containing this fragment MUST implement the {@link OnListFragmentInteractionListener}
  * interface.
  */
-public class PeerFragment extends Fragment {
+public class RemoteVideosFragment extends Fragment {
 
     // TODO: Customize parameter argument names
     private static final String ARG_COLUMN_COUNT = "column-count";
     // TODO: Customize parameters
     private int mColumnCount = 1;
     private OnListFragmentInteractionListener mListener;
-    private static PeerRecyclerViewAdapter adapter;
 
-    /**
-     * Mandatory empty constructor for the fragment manager to instantiate the
-     * fragment (e.g. upon screen orientation changes).
-     */
-    public PeerFragment() {
-    }
-
-    // TODO: Customize parameter initialization
-    @SuppressWarnings("unused")
-    public static PeerFragment newInstance(int columnCount) {
-        PeerFragment fragment = new PeerFragment();
-        Bundle args = new Bundle();
-        args.putInt(ARG_COLUMN_COUNT, columnCount);
-        fragment.setArguments(args);
-        return fragment;
-    }
+    private static RemoteVideosRecyclerViewAdapter adapter;
+    private VideoResourceList list = new VideoResourceList();
+    private List<VideoResource> temp;
 
     // publicly accessible handle to notify this fragment of changed data
     // in list of peers
     public static void notifyDataChanged() {
         adapter.notifyDataSetChanged();
+    }
+
+    /**
+     * Mandatory empty constructor for the fragment manager to instantiate the
+     * fragment (e.g. upon screen orientation changes).
+     */
+    public RemoteVideosFragment() {
+    }
+
+    // TODO: Customize parameter initialization
+    @SuppressWarnings("unused")
+    public static RemoteVideosFragment newInstance(int columnCount) {
+        RemoteVideosFragment fragment = new RemoteVideosFragment();
+        Bundle args = new Bundle();
+        args.putInt(ARG_COLUMN_COUNT, columnCount);
+        fragment.setArguments(args);
+        return fragment;
     }
 
     @Override
@@ -66,13 +70,15 @@ public class PeerFragment extends Fragment {
         }
 
         // initial value
-        adapter = new PeerRecyclerViewAdapter(PeerList.getPeers(), mListener);
+        temp = list.getList();
+        adapter = new RemoteVideosRecyclerViewAdapter(list.getList(), mListener);
+        System.out.println("comparison " + (temp==list.getList()));
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_peer_list, container, false);
+        View view = inflater.inflate(R.layout.fragment_remotevideos_list, container, false);
 
         // Set the adapter
         if (view instanceof RecyclerView) {
@@ -84,12 +90,10 @@ public class PeerFragment extends Fragment {
                 recyclerView.setLayoutManager(new GridLayoutManager(context, mColumnCount));
             }
 
-            Peer peer = new Peer();
-            peer.setId("id");
-            peer.setDeviceAddress("a device address::::");
-            PeerList.addPeer(peer);
-
-            adapter.notifyDataSetChanged();
+            // as a test
+            VideoResource resource = new VideoResource(0, "Test video resource");
+            list.addToList(resource);
+            notifyDataChanged();
 
             recyclerView.setAdapter(adapter);
         }
@@ -98,8 +102,8 @@ public class PeerFragment extends Fragment {
 
 
     @Override
-    public void onAttach(Activity context) {                // due to lower API lvl, Context->activity
-        super.onAttach((android.app.Activity) context);
+    public void onAttach(Activity context) {
+        super.onAttach(context);
         if (context instanceof OnListFragmentInteractionListener) {
             mListener = (OnListFragmentInteractionListener) context;
         } else {
@@ -126,6 +130,6 @@ public class PeerFragment extends Fragment {
      */
     public interface OnListFragmentInteractionListener {
         // TODO: Update argument type and name
-        void onListFragmentInteraction(Peer peer);
+        void onListFragmentInteraction(VideoResource item);
     }
 }

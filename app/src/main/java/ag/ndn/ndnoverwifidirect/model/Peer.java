@@ -10,8 +10,8 @@ import android.location.Address;
 public class Peer {
 
     private String id;
-
     private String deviceAddress;
+    private String name;
 
     public Peer() {}
 
@@ -29,6 +29,14 @@ public class Peer {
 
     public void setDeviceAddress(String deviceAddress) {
         this.deviceAddress = deviceAddress;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     @Override

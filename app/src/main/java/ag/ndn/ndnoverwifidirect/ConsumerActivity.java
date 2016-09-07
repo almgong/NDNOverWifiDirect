@@ -6,11 +6,17 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
+import android.widget.Toast;
+
+import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
+import ag.ndn.ndnoverwifidirect.fragment.RemoteVideosFragment;
+import ag.ndn.ndnoverwifidirect.model.Peer;
+import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResource;
 
 /**
  * TODO move consumer logic here
  */
-public class ConsumerActivity extends AppCompatActivity {
+public class ConsumerActivity extends AppCompatActivity implements RemoteVideosFragment.OnListFragmentInteractionListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,4 +35,9 @@ public class ConsumerActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    public void onListFragmentInteraction(VideoResource videoResource) {
+        System.out.println("WOOO clicked");
+        Toast.makeText(this, "Wooo: " + videoResource.toString(), Toast.LENGTH_SHORT);
+    }
 }

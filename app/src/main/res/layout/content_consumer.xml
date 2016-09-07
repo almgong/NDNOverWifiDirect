@@ -13,8 +13,8 @@
     tools:showIn="@layout/activity_consumer">
 
     <fragment
-        android:id="@+id/peer_fragment"
-        android:name="ag.ndn.ndnoverwifidirect.fragment.PeerFragment"
+        android:id="@+id/RemoteVideosFragment"
+        android:name="ag.ndn.ndnoverwifidirect.fragment.RemoteVideosFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_alignParentBottom="true"

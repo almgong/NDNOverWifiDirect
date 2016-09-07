@@ -1,5 +1,5 @@
 The videosharing package contains all logic and implementation needed to create 
-a functional video media player and sharer. Sharing here means being able to load
+a functional video media player and sharer running over NDN. Sharing here means being able to load
 and watch a video both locally and remotely on another device, roughly at the same time.
 
 No tested, concrete implementation of sync is expected, as that is another area of interest

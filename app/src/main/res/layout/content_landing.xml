@@ -59,4 +59,13 @@
         android:layout_below="@+id/choose_producer_btn"
         android:layout_centerHorizontal="true" />
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Connect to a peer"
+        android:id="@+id/connect_button"
+        android:layout_below="@+id/choose_consumer_btn"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="89dp" />
+
 </RelativeLayout>

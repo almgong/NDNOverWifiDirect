@@ -21,6 +21,7 @@ public class LandingActivity extends AppCompatActivity {
         // UI elements
         Button chooseProducerBtn = (Button) findViewById(R.id.choose_producer_btn);
         Button chooseConsumerBtn = (Button) findViewById(R.id.choose_consumer_btn);
+        Button connectToPeerBtn = (Button) findViewById(R.id.connect_button);
 
         // bind events
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -35,8 +36,7 @@ public class LandingActivity extends AppCompatActivity {
         chooseConsumerBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO change MainActivity.class to ConsumerActivity.class
-                Intent consumerIntent = new Intent(LandingActivity.this, MainActivity.class);
+                Intent consumerIntent = new Intent(LandingActivity.this, ConsumerActivity.class);
                 startActivity(consumerIntent);
             }
         });
@@ -46,6 +46,14 @@ public class LandingActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Intent producerIntent = new Intent(LandingActivity.this, ProducerActivity.class);
                 startActivity(producerIntent);
+            }
+        });
+
+        connectToPeerBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent connectIntent = new Intent(LandingActivity.this, MainActivity.class);
+                startActivity(connectIntent);
             }
         });
     }
