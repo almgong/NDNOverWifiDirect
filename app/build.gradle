@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 22
-    buildToolsVersion "22.0.1"
+    buildToolsVersion "23.0.2"
 
     defaultConfig {
         applicationId "ag.ndn.ndnoverwifidirect"
@@ -20,6 +20,17 @@ android {
             debuggable true
         }
     }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    dexOptions {
+        preDexLibraries true
+        javaMaxHeapSize "3g"
+        incremental true
+        dexInProcess = true
+    }
 }
 
 repositories {
@@ -30,12 +41,12 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
     compile group: 'net.named-data', name: 'jndn', version: '0.13'
+
     compile 'com.android.support:appcompat-v7:22.2.1'
     compile 'com.android.support:design:22.2.1'
     compile 'net.named-data.jndn-xx:jndn-xx-util:0.0.1'
     compile 'com.intel.jndn.management:jndn-management:1.1.2'
     compile 'com.android.support:support-v4:22.2.1'
     compile 'com.android.support:recyclerview-v7:22.2.1'
-
     compile 'com.google.android.exoplayer:exoplayer:r1.5.10'
 }
