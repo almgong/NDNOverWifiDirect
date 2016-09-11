@@ -49,4 +49,9 @@ public class VideoResource {
         result = 31 * result + (videoName != null ? videoName.hashCode() : 0);
         return result;
     }
+
+    @Override
+    public String toString() {
+        return id + "-" + videoName;
+    }
 }

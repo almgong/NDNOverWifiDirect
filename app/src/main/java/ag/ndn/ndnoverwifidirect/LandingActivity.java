@@ -24,15 +24,6 @@ public class LandingActivity extends AppCompatActivity {
         Button connectToPeerBtn = (Button) findViewById(R.id.connect_button);
 
         // bind events
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
         chooseConsumerBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

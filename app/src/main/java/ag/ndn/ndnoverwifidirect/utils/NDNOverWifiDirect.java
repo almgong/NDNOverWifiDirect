@@ -118,7 +118,7 @@ public class NDNOverWifiDirect extends NfdcHelper {
 
     /**
      * Retrieve set of peer Ips that have been registered/logged by the current device,
-     * ignores any "locahost" faces.
+     * ignores any "localhost" faces.
      * @return
      */
     public Set<String> enumerateLoggedFaces() {
@@ -313,6 +313,8 @@ public class NDNOverWifiDirect extends NfdcHelper {
             e.printStackTrace();
             return;
         }
+
+        // TODO move to Broadcast receiver!
 
         Log.d(TAG, "Registering the global registration prefix...");
 
