@@ -48,5 +48,5 @@ dependencies {
     compile 'com.intel.jndn.management:jndn-management:1.1.2'
     compile 'com.android.support:support-v4:22.2.1'
     compile 'com.android.support:recyclerview-v7:22.2.1'
-    compile 'com.google.android.exoplayer:exoplayer:r1.5.10'
+    compile 'com.google.android.exoplayer:exoplayer:r2.0.0'
 }
