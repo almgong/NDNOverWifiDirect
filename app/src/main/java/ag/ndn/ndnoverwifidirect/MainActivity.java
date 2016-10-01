@@ -1,51 +1,27 @@
 package ag.ndn.ndnoverwifidirect;
 
 import android.app.Fragment;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.ContextWrapper;
-import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
-
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
-import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
-import net.named_data.jndn.OnInterestCallback;
 import net.named_data.jndn.security.KeyChain;
 
-import java.util.HashMap;
-import java.util.jar.Manifest;
-
-import ag.ndn.ndnoverwifidirect.callback.RegisterOnInterest;
 import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
 import ag.ndn.ndnoverwifidirect.model.Peer;
-import ag.ndn.ndnoverwifidirect.model.PeerList;
-import ag.ndn.ndnoverwifidirect.service.NfdService;
 import ag.ndn.ndnoverwifidirect.utils.IPAddress;
-import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
-
-import static android.app.PendingIntent.getActivity;
+import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
 
 /**
  * Logic flow:
