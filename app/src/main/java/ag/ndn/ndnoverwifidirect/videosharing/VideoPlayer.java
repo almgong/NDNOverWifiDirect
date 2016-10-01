@@ -16,6 +16,8 @@ import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelector;
 
+import java.util.LinkedList;
+
 /**
  * Simple singleton class representing a video player in NDNOverWifiD.
  * Note that a ExoPlayer is returned, rather than an instance of
@@ -24,6 +26,10 @@ import com.google.android.exoplayer2.trackselection.TrackSelector;
  * Created by allengong on 9/20/16.
  */
 public class VideoPlayer {
+
+    // constants
+    private final int ITEM_SIZE = 2000;     // in bytes
+    private final int MAX_CACHED_ITEMS = 5; // number of incoming packets cacheable at a given time
 
     // singleton
     private static SimpleExoPlayer player = null;
