@@ -115,17 +115,17 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                         Log.d(TAG,
                                 String.format("woo peers available: %d", peers.getDeviceList().size()));
 
-                        PeerList.resetPeerList();   // need to do extra processing to unregister faces
+                        PeerList.resetPeerList();   // todo need to do extra processing to unregister faces
                         int id = 0;
-                        // ideally want to check if peers are new, and add to some rolling list
-                        // use PeerList, which should expose diff methods, etc., to know what faces
-                        // to actually create, and which to destroy
+
+                        // iterate through devices
                         for (WifiP2pDevice device : peers.getDeviceList()) {
 
                             // no need to check since we cleared the list before this
                             Peer peer = new Peer();
                             peer.setId("" + ++id);
                             peer.setDeviceAddress(device.deviceAddress);
+                            peer.setName(device.deviceName);
                             PeerList.addPeer(peer);
 
                             // store mapping
@@ -170,6 +170,44 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
                         System.out.println("group owner address " + groupOwnerAddress);
 
+
+                        Log.d(TAG, "Registering the global registration prefix...");
+
+                        // register the registration prefix if it has not already been registered - all peers must do this
+                        // done here to ensure WifiD IP exists
+                        if (!mController.getRegistrationPrefixComplete()) {
+
+                            Log.d(TAG, "Registering the registration prefix...");
+                            mFace = new Face("localhost");
+                            try {
+                                KeyChain keyChain = mController.getKeyChain();
+                                mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                return;
+                            }
+
+                            // all devices will register this prefix(/ndn/wifid/register/xxx.xxx.xxx) for basic info exchange
+                            String prefixToRegister = "/ndn/wifid/register/" + IPAddress.getLocalIPAddress();
+                            OnInterestCallback cb = new OnInterestCallback() {
+                                @Override
+                                public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
+                                    Log.d(TAG, "On Global registration interest!!!");
+                                    (new RegisterOnInterest()).doJob(prefix, interest, face, interestFilterId,
+                                            filter);
+                                }
+                            };
+
+                            mController.registerPrefix(mFace, prefixToRegister, cb, true, 5000);
+                            mController.setRegistrationPrefixComplete(true);
+                            Log.d(TAG, "Registering registration prefix complete.");
+
+                        } else {
+                            Log.d(TAG, "Registration prefix already registered, skipping...");
+                        }
+
+                        // move on to etc.
+
                         // After the group negotiation, we can determine the group owner.
                         if (info.groupFormed && info.isGroupOwner) {
                             // Do whatever tasks are specific to the group owner.
@@ -179,8 +217,8 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                             Log.d(TAG, "I am the group owner");
                             isGroupOwner = true;
 
-                            // test
-                            mController.addPrefixHandled("/ndn/wifid/lord-of-the-rings/8/22");
+                            // for testing
+                            mController.addPrefixHandled("/ndn/wifid/big-buck-bunny");
 
                         } else if (info.groupFormed) {
                             // The other device acts as the client. In this case,
@@ -191,7 +229,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
                             Log.d(TAG, "handling dummy prefix at /ndn/wifid/megaman/8/22");
                             mController.addPrefixHandled("/ndn/wifid/megaman/8/28");
-                            mController.addPrefixHandled("/ndn/wifid/megaman/8/29");
+
                             try {
                                 // log initial faces, of group owner
                                 mController.logFace(groupOwnerAddress, new Face(groupOwnerAddress));

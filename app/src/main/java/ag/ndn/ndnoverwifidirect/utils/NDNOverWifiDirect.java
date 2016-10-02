@@ -4,26 +4,20 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import com.intel.jndn.management.ManagementException;
-
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
-import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
 import net.named_data.jndn.OnInterestCallback;
 import net.named_data.jndn.security.KeyChain;
-import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
 import net.named_data.jndn.security.identity.IdentityManager;
 import net.named_data.jndn.security.identity.MemoryIdentityStorage;
-import net.named_data.jndn_xx.util.FaceUri;
+import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.Executor;
 
-import ag.ndn.ndnoverwifidirect.callback.RegisterOnInterest;
 import ag.ndn.ndnoverwifidirect.task.FaceCreateTask;
 import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
 import ag.ndn.ndnoverwifidirect.task.RibRegisterPrefixTask;
@@ -57,7 +51,7 @@ public class NDNOverWifiDirect extends NfdcHelper {
     // singleton
     private static NDNOverWifiDirect singleton;
 
-    // members
+    // logcat tag
     private static final String TAG = "NDNOverWifiDirect";
 
     // { peerIP : Face }, any created faces using "new" logged here - good for MANUALLY selecting faces
@@ -155,7 +149,6 @@ public class NDNOverWifiDirect extends NfdcHelper {
 
         // remove from peer to face id index
         peerToFaceMap.remove(peerIp);
-
     }
 
     /**
@@ -208,7 +201,7 @@ public class NDNOverWifiDirect extends NfdcHelper {
     // send interest, default OnData
     public void sendInterest(Interest interest, Face face) {
         SendInterestTask task = new SendInterestTask(interest, face);
-        task.execute();
+        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     // send interest with custom OnData
@@ -302,52 +295,19 @@ public class NDNOverWifiDirect extends NfdcHelper {
     // --- initialization logic, things that should be called by applications using this ---//
     public void initialize() {
 
-        Log.d(TAG, "Initializing NDNOverWifiDirectController");
-        logFace("localhost", new Face("localhost"));
-        Face mFace = getFaceByUri("localhost");
-
-        try {
-            KeyChain keyChain = getKeyChain();
-            mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
-        } catch (Exception e) {
-            e.printStackTrace();
-            return;
-        }
+//        Log.d(TAG, "Initializing NDNOverWifiDirectController");
+//        logFace("localhost", new Face("localhost"));
+//        Face mFace = getFaceByUri("localhost");
+//
+//        try {
+//            KeyChain keyChain = getKeyChain();
+//            mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return;
+//        }
 
         // TODO move to Broadcast receiver!
 
-        Log.d(TAG, "Registering the global registration prefix...");
-
-        // register the registration prefix if it has not already been registered - all peers must do this
-        if (!registrationPrefixComplete) {
-            Log.d(TAG, "Register the registration prefix...");
-            mFace = new Face("localhost");
-            Log.d(TAG, "using a fresh new face");
-            try {
-                KeyChain keyChain = getKeyChain();
-                mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
-            } catch (Exception e) {
-                e.printStackTrace();
-                return;
-            }
-
-            // all devices will register this prefix(/ndn/wifid/register/xxx.xxx.xxx) for basic info exchange
-            String prefixToRegister = "/ndn/wifid/register/" + IPAddress.getLocalIPAddress();
-            OnInterestCallback cb = new OnInterestCallback() {
-                @Override
-                public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
-                    Log.d(TAG, "On Global registration interest!!!");
-                    (new RegisterOnInterest()).doJob(prefix, interest, face, interestFilterId,
-                            filter);
-                }
-            };
-
-            registerPrefix(mFace, prefixToRegister, cb, true, 5000);
-            registrationPrefixComplete = true;
-            Log.d(TAG, "WOOOO");
-
-        } else {
-            Log.d(TAG, "Registration prefix already registered, skipping...");
-        }
     }
 }

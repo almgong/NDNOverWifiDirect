@@ -26,16 +26,12 @@ import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
 /**
  * Logic flow:
  *
- * init() wifidirect and register this activity with it -- test to see if device changes cause a
- * event to be caught
- *
- * Create a new Interface that bridges the gap between wifidirect and JNDN (NFDC) -- interface
- * should be analogous to the regular NFDC, but has changes that deals with wifidirect.
- *
+ * init() wifidirect and register this activity with it, attempt to discover peers, and allow
+ * user to select via a list fragment, a peer to connect to.
  */
-public class MainActivity extends AppCompatActivity implements PeerFragment.OnListFragmentInteractionListener {
+public class ConnectActivity extends AppCompatActivity implements PeerFragment.OnListFragmentInteractionListener {
 
-    private static final String TAG = "MainActivity";
+    private static final String TAG = "ConnectActivity";
 
     private WifiP2pManager mManager;
     private Channel mChannel;
@@ -46,48 +42,21 @@ public class MainActivity extends AppCompatActivity implements PeerFragment.OnLi
 
     private Face testFace = new Face("localhost");
 
-    // layout elements
-    private Fragment peerFrag;
-    //private Button sendRegistrationButton;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // handle for the list fragment
-
-        Log.d(TAG, "Init WifiP2P for this app");
+        Log.d(TAG, "Init WifiP2P...");
         initWifiP2p();
 
-        Log.d(TAG, "Start using NDNOverWifiDirect interface...");
-        Log.d(TAG, "Discover peers");
+        Log.d(TAG, "Discovering peers...");
         try {
             mController.initialize();   // initializes this device for NDNOverWifid readiness
             mController.discoverPeers(mManager, mChannel);
-
-            // call init() that will run in the background discover peers every so often
-            // discoverPeers() should update FIB entries with the correct information
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
-        // layout elements
-
-       //  this button is temporary and for debugging
-//        sendRegistrationButton = (Button) findViewById(R.id.send_reg_interest_button);
-//
-//        sendRegistrationButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                mController.sendInterest(new Interest(new Name("/ndn/wifid/"
-//                        + IPAddress.getDottedDecimalIP(IPAddress.getLocalIPAddress()))), new Face(WiFiDirectBroadcastReceiver.groupOwnerAddress));
-//
-//                Toast.makeText(MainActivity.this, "Sent interest via button", Toast.LENGTH_SHORT);
-//            }
-//        });
-
     }
 
     /* initialize manager and receiver for activity */
@@ -109,7 +78,6 @@ public class MainActivity extends AppCompatActivity implements PeerFragment.OnLi
     @Override
     protected void onResume() {
         super.onResume();
-        //bindNfdService();
         registerReceiver(mReceiver, mIntentFilter);
     }
 
@@ -117,15 +85,12 @@ public class MainActivity extends AppCompatActivity implements PeerFragment.OnLi
     @Override
     protected void onPause() {
         super.onPause();
-        //unbindNfdService();
-        //Log.d(TAG, "UNBIND NFD SERVICES");
         unregisterReceiver(mReceiver);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        //unbindNfdService();
     }
 
     /* implement Fragment listener(s) to allow fragment communications */
