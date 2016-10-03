@@ -1,5 +1,6 @@
 package ag.ndn.ndnoverwifidirect;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -32,8 +33,13 @@ public class ConsumerActivity extends AppCompatActivity {
         // for list view; a list of remote video resources
         //TODO need to be able to retrieve using mController the prefixes reachable
         VideoResourceList videoResourceList = GlobalLists.getConsumerVideoResourceList();
+
         // init here //
-        videoResourceList.addToList(new VideoResource(0, "JUST A TEST REMOTE VIDEO!!!"));
+        int i = 0;
+        for (String prefix : mController.getRegisteredPrefixes()) {
+            videoResourceList.addToList(new VideoResource(i+1, prefix));
+            i++;
+        }
 
         ArrayAdapter<VideoResource> adapter = new ArrayAdapter<VideoResource>(this,
                 android.R.layout.simple_list_item_1, videoResourceList.getList());
@@ -44,7 +50,12 @@ public class ConsumerActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                System.out.println("WOOOOO clicked @consumer@@@@");
+                VideoResource resource = (VideoResource) parent.getItemAtPosition(position);
+
+                Intent intent = new Intent(ConsumerActivity.this, VideoActivity.class);
+                intent.putExtra("isLocal", false);
+                intent.putExtra("prefix", resource.getVideoName()); // name is the parent prefix
+                startActivity(intent);
             }
         });
     }

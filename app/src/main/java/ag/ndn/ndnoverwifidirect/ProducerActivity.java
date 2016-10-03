@@ -48,12 +48,10 @@ public class ProducerActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        // get a list of local videos TODO should read local filesystem here
+        // get a list of local videos TODO should read local filesystem here to initialize the list
         GlobalLists.getProducerVideoResourceList().addToList(new VideoResource(0, "TEST PRODUCER VIDEO RESOURCE"));
 
-        // TODO read from default video location
-        GlobalLists.getProducerVideoResourceList().addToList(new VideoResource(1, "TEST PRODUCER VIDEO RESOURCE"));
-
+        // init the list view
         VideoResourceList localVideos = GlobalLists.getProducerVideoResourceList();
         ArrayAdapter<VideoResource> listViewAdapter = new ArrayAdapter<VideoResource>(ProducerActivity.this,
                 android.R.layout.simple_list_item_1, localVideos.getList());
@@ -63,19 +61,15 @@ public class ProducerActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
-                System.out.println("wooo something got clicked");
-                System.out.println(parent);
-                System.out.println(view);
-                System.out.println(position);
-                System.out.println(id);
+                // on click, start video activity as a producer
 
                 // TODO this is temporary for testing
                 String videoUriAsString = Environment.getExternalStorageDirectory() + "/" + Environment.DIRECTORY_MOVIES + "/big_buck_bunny.mp4";
 
                 Intent intent = new Intent(ProducerActivity.this, VideoActivity.class);
                 intent.putExtra("videoUri", videoUriAsString);
-                intent.putExtra("local", true);
+                intent.putExtra("isLocal", true);
+                intent.putExtra("prefix", "/ndn/wifid/big-buck-bunny"); // should use Globals.getProducer... to find out
                 startActivity(intent);
             }
         });

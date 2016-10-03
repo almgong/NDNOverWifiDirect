@@ -14,8 +14,10 @@ import net.named_data.jndn.security.identity.IdentityManager;
 import net.named_data.jndn.security.identity.MemoryIdentityStorage;
 import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import ag.ndn.ndnoverwifidirect.task.FaceCreateTask;
@@ -269,6 +271,15 @@ public class NDNOverWifiDirect extends NfdcHelper {
 
         // all processing of interests should be handled in parallel, as to not block each other
         registerPrefixTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+
+    public List<String> getRegisteredPrefixes() {
+        List<String> prefixes;
+        // TODO -- either need to store it in this class, or use ribList() call
+
+        prefixes = new ArrayList<>();
+        prefixes.add("/ndn/wifid/big-buck-bunny");
+        return prefixes;
     }
 
     private KeyChain buildTestKeyChain() throws net.named_data.jndn.security.SecurityException {

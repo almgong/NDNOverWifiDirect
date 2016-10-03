@@ -56,10 +56,6 @@ public class ChunkDataSource implements DataSource {
                 current = Arrays.copyOfRange(current, readLength, current.length); // [readLength:]
 
             } else {
-
-                System.err.println("Grabbing new chunk due to insufficient cache...");
-                System.err.println("bytes remaining in current " + current.length + " bytes needed: " + readLength);
-
                 // uh oh, need to grab a new tempBuffer and piece together the remaining bytes in current
                 while ((tempBuffer = videoPlayerBuffer.getFromBuffer()) == null) {
                     try{

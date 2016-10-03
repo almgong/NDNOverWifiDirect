@@ -178,7 +178,6 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                         if (!mController.getRegistrationPrefixComplete()) {
 
                             Log.d(TAG, "Registering the registration prefix...");
-                            mFace = new Face("localhost");
                             try {
                                 KeyChain keyChain = mController.getKeyChain();
                                 mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
