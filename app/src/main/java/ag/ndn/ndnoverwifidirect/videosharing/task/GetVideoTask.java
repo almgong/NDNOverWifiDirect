@@ -83,6 +83,7 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
              * then next 2 bytes is data size (max is 2^16) in bytes,
              * followed by the data
              *
+             * current seq num could be encoded in the name?? for use with skipping
              */
             // send out interest with sequence number, e.g. /ndn/wifid/movie/[sequenceNumber], seqNum starts at 1
             final String prefix = params[0];

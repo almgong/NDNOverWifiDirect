@@ -65,6 +65,9 @@ public class NDNOverWifiDirect extends NfdcHelper {
     // set of prefixes that the running application handles - everyone is assumed to handle /ndn/wifid/register
     private Set<String> prefixes = new HashSet<String>();
 
+    // set of prefixes (TODO temp) that other apps have said they handle
+    private Set<String> registeredPrefixes = new HashSet<>();
+
     // flag to denote that registration prefix (ubiquitous) has been set up already
     private static boolean registrationPrefixComplete = false;
 
@@ -273,13 +276,12 @@ public class NDNOverWifiDirect extends NfdcHelper {
         registerPrefixTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
-    public List<String> getRegisteredPrefixes() {
+    public Set<String> getRegisteredPrefixes() {
         List<String> prefixes;
         // TODO -- either need to store it in this class, or use ribList() call
 
-        prefixes = new ArrayList<>();
-        prefixes.add("/ndn/wifid/big-buck-bunny");
-        return prefixes;
+        registeredPrefixes.add("/ndn/wifid/big-buck-bunny");
+        return registeredPrefixes;
     }
 
     private KeyChain buildTestKeyChain() throws net.named_data.jndn.security.SecurityException {
@@ -304,21 +306,7 @@ public class NDNOverWifiDirect extends NfdcHelper {
     }
 
     // --- initialization logic, things that should be called by applications using this ---//
-    public void initialize() {
-
-//        Log.d(TAG, "Initializing NDNOverWifiDirectController");
-//        logFace("localhost", new Face("localhost"));
-//        Face mFace = getFaceByUri("localhost");
-//
-//        try {
-//            KeyChain keyChain = getKeyChain();
-//            mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return;
-//        }
-
-        // TODO move to Broadcast receiver!
+    public void initialize() {//TODO
 
     }
 }

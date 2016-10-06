@@ -37,6 +37,7 @@ import java.io.IOException;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayer;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
+import ag.ndn.ndnoverwifidirect.videosharing.callback.GetVideoOnInterest;
 import ag.ndn.ndnoverwifidirect.videosharing.datasource.ChunkDataSource;
 import ag.ndn.ndnoverwifidirect.videosharing.datasource.ChunkDataSourceFactory;
 import ag.ndn.ndnoverwifidirect.videosharing.task.GetVideoTask;
@@ -54,6 +55,9 @@ public class VideoActivity extends AppCompatActivity {
     private Handler handler = new Handler();
 
     private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
+
+    // initialized dependent on whether you are a producer/consumer
+    GetVideoTask getVideoTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,6 +127,14 @@ public class VideoActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+
+        if (bundle.getBoolean("isLocal")) {
+            getVideoTask.stop(true);
+        } else {
+            // stop responding to interests towards this prefix
+
+        }
+
         player.release();
     }
 
@@ -140,8 +152,8 @@ public class VideoActivity extends AppCompatActivity {
      * @param prefix
      */
     private void startGettingVideo(String prefix) {
-        GetVideoTask task = new GetVideoTask(videoPlayerBuffer);
-        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, prefix);
+        getVideoTask = new GetVideoTask(videoPlayerBuffer);
+        getVideoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, prefix);
         Log.d(TAG, "Started GetVideoTask...");
     }
 
@@ -164,7 +176,9 @@ public class VideoActivity extends AppCompatActivity {
 
             @Override
             public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
+                Log.d(TAG, "Got some data, return dummy data");
 
+                (new GetVideoOnInterest()).doJob(prefix, interest,face, interestFilterId, filter);
             }
         }, false, 500);
     }

@@ -217,7 +217,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                             isGroupOwner = true;
 
                             // for testing
-                            mController.addPrefixHandled("/ndn/wifid/big-buck-bunny");
+                            //mController.addPrefixHandled("/ndn/wifid/big-buck-bunny");
 
                         } else if (info.groupFormed) {
                             // The other device acts as the client. In this case,
