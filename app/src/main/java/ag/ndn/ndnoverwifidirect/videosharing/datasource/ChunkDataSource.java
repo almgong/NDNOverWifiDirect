@@ -22,7 +22,7 @@ public class ChunkDataSource implements DataSource {
 
     private VideoPlayerBuffer videoPlayerBuffer;
     private byte[] current = new byte[0];
-    private int currentCounter = 0;         // 0-means current points to first x bytes retrieved from buffer, etc.
+    private int waitTime = 350;         // ms time to wait in between calls to videoplayer buffer
     private boolean eofReached = false;
 
     public ChunkDataSource(VideoPlayerBuffer buffer) {
@@ -59,7 +59,7 @@ public class ChunkDataSource implements DataSource {
                 // uh oh, need to grab a new tempBuffer and piece together the remaining bytes in current
                 while ((tempBuffer = videoPlayerBuffer.getFromBuffer()) == null) {
                     try{
-                        Thread.sleep(500);      // wait .5 seconds between each call as to not waste CPU cycles
+                        Thread.sleep(waitTime);      // wait x seconds between each call as to not waste CPU cycles
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -82,7 +82,7 @@ public class ChunkDataSource implements DataSource {
 
             while ((tempBuffer = videoPlayerBuffer.getFromBuffer()) == null) {
                 try{
-                    Thread.sleep(500);      // wait .5 seconds between each call as to not waste CPU cycles
+                    Thread.sleep(waitTime);      // wait x seconds between each call as to not waste CPU cycles
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
