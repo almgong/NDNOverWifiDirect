@@ -25,7 +25,7 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
 
     private boolean mStopProcessing = false;
 
-    // minimal constructor
+    // minimal constructor, useful really for debugging or sending interests with no care about data
     public SendInterestTask(Interest interest, Face face) {
         this.interest = interest;
         this.interest.setInterestLifetimeMilliseconds(10000);
@@ -69,7 +69,7 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
 
             // Keep precessing events on the face (necessary) - 10 times max
             int counter = 0;
-            int numTries = 10000/1000 - 1; // TODO make this automatic and customizable by cstr
+            int numTries = 30000/1000 - 1; // TODO make this customizable by cstr
             while (!mStopProcessing) {  // should last until the response comes back
                 mFace.processEvents();
                 if (counter++ > numTries) {
