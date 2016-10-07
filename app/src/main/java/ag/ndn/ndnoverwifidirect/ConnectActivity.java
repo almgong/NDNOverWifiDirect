@@ -17,6 +17,7 @@ import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
 import net.named_data.jndn.security.KeyChain;
 
+import ag.ndn.ndnoverwifidirect.callback.RegisterOnData;
 import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
 import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.utils.IPAddress;
@@ -102,29 +103,23 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
         Toast.makeText(this, "My IP address: " + IPAddress.getLocalIPAddress()
                 , Toast.LENGTH_SHORT).show();
 
-
-
         mReceiver.connectToPeer(peer);
         Log.d(TAG, "Sending registration interest again on click");
 
         Face mFace = new Face("localhost");
         Name n = new Name("/ndn/wifid/register/" + WiFiDirectBroadcastReceiver.groupOwnerAddress + "/" +
-        WiFiDirectBroadcastReceiver.myAddress);
-        try {
-            KeyChain keyChain = mController.getKeyChain();
-            mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
-        } catch(Exception e) {
-            e.printStackTrace();
-            return;
-        }
-        Log.d(TAG, "manually sending interest");
-        n = new Name("/ndn/wifid/register/192.168.49.142/192.168.49.1");
-        mController.sendInterest(new Interest(n), mFace, new OnData() {
+        WiFiDirectBroadcastReceiver.myAddress + "/" + System.currentTimeMillis());
+
+        Log.d(TAG, "manually (re)sending interest...");
+        // on data callback
+        OnData onDataCallback = new OnData() {
             @Override
             public void onData(Interest interest, Data data) {
-                Log.d(TAG, "wooooo");
-                System.out.println(data.toString());
+                (new RegisterOnData()).doJob(interest, data);
             }
-        });
+        };
+        Interest interest = new Interest(n);
+        interest.setMustBeFresh(true);
+        mController.sendInterest(interest, mFace, onDataCallback);
     }
 }

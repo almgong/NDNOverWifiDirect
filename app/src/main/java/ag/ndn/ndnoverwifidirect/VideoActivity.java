@@ -34,7 +34,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
+import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayer;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
 import ag.ndn.ndnoverwifidirect.videosharing.callback.GetVideoOnInterest;
@@ -52,12 +54,14 @@ public class VideoActivity extends AppCompatActivity {
 
     private SimpleExoPlayer player;
     private VideoPlayerBuffer videoPlayerBuffer = new VideoPlayerBuffer();
-    private Handler handler = new Handler();
+    private Handler handler;
 
     private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
 
     // initialized dependent on whether you are a producer/consumer
-    GetVideoTask getVideoTask;
+    private GetVideoTask getVideoTask;
+    private RegisterPrefixTask pushVideoTask;
+    private String currentPrefix;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,10 +75,11 @@ public class VideoActivity extends AppCompatActivity {
 
         // get the simple exo video player
         player = VideoPlayer.getPlayer(this);
+        handler = VideoPlayer.handler;
 
         // source to which ExoPlayer should read from
         MediaSource source = null;
-
+        currentPrefix = bundle.getString("prefix");
         if (bundle.getBoolean("isLocal")) {
 
             // file is local, use default data source
@@ -91,7 +96,7 @@ public class VideoActivity extends AppCompatActivity {
                     });
 
             // register the prefix to share
-            registerVideoPrefix(bundle.getString("prefix"));
+            registerVideoPrefix(currentPrefix);
         } else {
 
             // get external media using our custom chunk data source
@@ -106,7 +111,7 @@ public class VideoActivity extends AppCompatActivity {
             });
 
             // start getting media from network
-            startGettingVideo(bundle.getString("prefix"));
+            startGettingVideo(currentPrefix);
         }
 
         // prepare the player with the appropriate data source
@@ -121,7 +126,8 @@ public class VideoActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        handler = new Handler();    // TODO debug the dead handler thread issue
+
+        // restart getVideoTask or pushVideoTask as needed
     }
 
     @Override
@@ -129,10 +135,11 @@ public class VideoActivity extends AppCompatActivity {
         super.onPause();
 
         if (bundle.getBoolean("isLocal")) {
-            getVideoTask.stop(true);
-        } else {
             // stop responding to interests towards this prefix
-
+            pushVideoTask.setStopProcessing(true);
+            mController.removePrefixHandled(currentPrefix);
+        } else {
+            getVideoTask.stop(true);
         }
 
         player.release();
@@ -149,7 +156,7 @@ public class VideoActivity extends AppCompatActivity {
     /**
      * Begins sending out interests to acquire video bytes,
      * and populates the VideoPlayerBuffer instance.
-     * @param prefix
+     * @param prefix the prefix to get video media from.
      */
     private void startGettingVideo(String prefix) {
         getVideoTask = new GetVideoTask(videoPlayerBuffer);
@@ -160,11 +167,16 @@ public class VideoActivity extends AppCompatActivity {
     /**
      * Registers the prefix with NFD, and OnInterest, returns
      * the "correct" bytes of the current video.
-     * @param prefix
+     * @param prefix The prefix to register (can be different from currentPrefix)
      */
     private void registerVideoPrefix(String prefix) {
         Log.d(TAG, "REGISTERING VIDEO PREFIX FOR SHARING...");
-        Face mFace = new Face();
+//        Face mFace = mController.getFaceByIp(WiFiDirectBroadcastReceiver.groupOwnerAddress);
+//        if (mFace == null) {
+//            mFace = new Face("localhost");
+//        }
+        Face mFace = new Face("localhost");
+
         try {
             KeyChain keyChain = mController.getKeyChain();
             mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
@@ -172,12 +184,11 @@ public class VideoActivity extends AppCompatActivity {
             e.printStackTrace();
             return;
         }
-        mController.registerPrefix(mFace, prefix, new OnInterestCallback() {
+         pushVideoTask = (RegisterPrefixTask)mController.registerPrefix(mFace, prefix, new OnInterestCallback() {
 
             @Override
             public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
                 Log.d(TAG, "Got some data, return dummy data");
-
                 (new GetVideoOnInterest()).doJob(prefix, interest,face, interestFilterId, filter);
             }
         }, false, 500);

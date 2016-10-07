@@ -14,10 +14,8 @@ import net.named_data.jndn.security.identity.IdentityManager;
 import net.named_data.jndn.security.identity.MemoryIdentityStorage;
 import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import ag.ndn.ndnoverwifidirect.task.FaceCreateTask;
@@ -44,12 +42,6 @@ import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
  * Created by allengong on 7/11/16.
  */
 public class NDNOverWifiDirect extends NfdcHelper {
-
-    // prevents instantiation
-    private NDNOverWifiDirect() {
-        super();
-    }
-
     // singleton
     private static NDNOverWifiDirect singleton;
 
@@ -71,8 +63,13 @@ public class NDNOverWifiDirect extends NfdcHelper {
     // flag to denote that registration prefix (ubiquitous) has been set up already
     private static boolean registrationPrefixComplete = false;
 
-    public static NDNOverWifiDirect getInstance() {
 
+    // prevents instantiation
+    private NDNOverWifiDirect() {
+        super();
+    }
+
+    public static NDNOverWifiDirect getInstance() {
         if (singleton == null) {
             singleton = new NDNOverWifiDirect();
         }
@@ -105,14 +102,11 @@ public class NDNOverWifiDirect extends NfdcHelper {
 
     /**
      * Retrieve a registered/logged Face instance given its URI
-     * @param uri
-     * @return a Face instance with the given URI, or null
+     * @param ip the WifiDirect IP of the peer
+     * @return a Face instance with the given URI, or null if there is none
      */
-    public Face getFaceByUri(String uri) {
-        if (faceMap.containsKey(uri)) {
-            return faceMap.get(uri);            // uri identifies the peer
-        }
-        return null;
+    public Face getFaceByIp(String ip) {
+        return faceMap.get(ip);            // uri identifies the peer
     }
 
     /**
@@ -181,7 +175,7 @@ public class NDNOverWifiDirect extends NfdcHelper {
      * @param prefix the prefix
      * @return true if removed, false if no matching prefix found
      */
-    private boolean removePrefixHandled(String prefix) {
+    public boolean removePrefixHandled(String prefix) {
         return this.prefixes.remove(prefix);
     }
 
@@ -204,18 +198,22 @@ public class NDNOverWifiDirect extends NfdcHelper {
     }
 
     // send interest, default OnData
-    public void sendInterest(Interest interest, Face face) {
+    // each sendInterest() method returns the async task, as they can be long living
+    public AsyncTask sendInterest(Interest interest, Face face) {
         SendInterestTask task = new SendInterestTask(interest, face);
         task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        return task;
     }
 
     // send interest with custom OnData
-    public void sendInterest(Interest interest, Face face, OnData onData) {
+    public AsyncTask sendInterest(Interest interest, Face face, OnData onData) {
         SendInterestTask task = new SendInterestTask(interest, face, onData);
         task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR); // parallel handling of async tasks
+        return task;
     }
 
-    // catch-all-like send interest function, sends to all faces
+    // catch-all-like send interest function, sends to all faces, deprecated for lack of purpose
+    @Deprecated
     public void sendInterestToAllFaces(Interest interest) {
         for (String faceUri : faceMap.keySet()) {
            SendInterestTask task = new SendInterestTask(interest, faceMap.get(faceUri));
@@ -252,16 +250,19 @@ public class NDNOverWifiDirect extends NfdcHelper {
 
     /**
      * Registers the given prefix to the specified face. Indicates to NFD that this application
-     * handles the given prefix.
+     * handles the given prefix. Also registers a callback to call when interests arrive for that
+     * prefix.
      *
      * @param face NDN Face instance to register prefix on.
      * @param prefix string prefix, e.g. /ndn/wifid/register
      * @param handleForever boolean denoting whether the prefix should be advertised indefinitely
+     *
+     * @return an AsyncTask object (RegisterPrefixTask) that can be used to stop processing, etc.
      */
-    public void registerPrefix(Face face, String prefix, OnInterestCallback cb, boolean handleForever,
+    public AsyncTask registerPrefix(Face face, String prefix, OnInterestCallback cb, boolean handleForever,
                                long repeatTimer) {
 
-        // TEMP, don't handle other peer's registration prefix TODO debug
+        // TEMP, don't handle your own registration prefix TODO debug
         if (!prefix.startsWith("/ndn/wifid/register")) {
             addPrefixHandled(prefix);
         }
@@ -274,13 +275,14 @@ public class NDNOverWifiDirect extends NfdcHelper {
 
         // all processing of interests should be handled in parallel, as to not block each other
         registerPrefixTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+
+        return registerPrefixTask;
     }
 
     public Set<String> getRegisteredPrefixes() {
-        List<String> prefixes;
         // TODO -- either need to store it in this class, or use ribList() call
-
         registeredPrefixes.add("/ndn/wifid/big-buck-bunny");
+
         return registeredPrefixes;
     }
 

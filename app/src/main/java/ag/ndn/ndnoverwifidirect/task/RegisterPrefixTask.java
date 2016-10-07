@@ -16,6 +16,7 @@ import net.named_data.jndn.Name;
 import net.named_data.jndn.OnInterestCallback;
 import net.named_data.jndn.OnRegisterFailed;
 import net.named_data.jndn.OnRegisterSuccess;
+import net.named_data.jndn.security.KeyChain;
 import net.named_data.jndn.util.Blob;
 
 import java.io.IOException;
@@ -30,6 +31,8 @@ import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
 
     private final String TAG = "RegisterPrefixTask";
+
+    private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
 
     private Face mFace;
     private OnInterestCallback onInterestCallback;
@@ -50,11 +53,15 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
     public void setProcessEventsTimer(long repeat) {
         this.processEventsTimer = repeat;
     }
+    public void setStopProcessing(boolean stop) { this.mStopProcessing = stop; }
 
     // hardcoded responses for now
     @Override
     protected Integer doInBackground(String... params) {
         try {
+            // keychain business
+            KeyChain keyChain = mController.getKeyChain();
+            mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
 
             // allow child inherit
             ForwardingFlags flags = new ForwardingFlags();
@@ -78,12 +85,11 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
             // Keep precessing events on the face (necessary)
             while (!mStopProcessing || handleForever) {  // should last forever
                 mFace.processEvents();
-                //Log.d(TAG, "processing events for : " + prefixToRegister);
                 Thread.sleep(processEventsTimer);  // every x (e.g. 1500) milliseconds, modulate as needed
             }
 
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
 
         return 0;

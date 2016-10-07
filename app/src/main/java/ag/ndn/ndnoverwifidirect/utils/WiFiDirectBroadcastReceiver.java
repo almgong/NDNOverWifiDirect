@@ -178,13 +178,6 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                         if (!mController.getRegistrationPrefixComplete()) {
 
                             Log.d(TAG, "Registering the registration prefix...");
-                            try {
-                                KeyChain keyChain = mController.getKeyChain();
-                                mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                return;
-                            }
 
                             // all devices will register this prefix(/ndn/wifid/register/xxx.xxx.xxx) for basic info exchange
                             String prefixToRegister = "/ndn/wifid/register/" + IPAddress.getLocalIPAddress();
@@ -227,7 +220,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                                     myAddress);
 
                             Log.d(TAG, "handling dummy prefix at /ndn/wifid/megaman/8/22");
-                            mController.addPrefixHandled("/ndn/wifid/megaman/8/28");
+                            mController.addPrefixHandled("/ndn/wifid/nongroup-owner-dummy-prefix");
 
                             try {
                                 // log initial faces, of group owner
@@ -249,10 +242,12 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                                     }
                                 };
 
-                                // send registration interest to group owner
-                                mController.sendInterest(new Interest(new Name("/ndn/wifid/register/" +
-                                                groupOwnerAddress + "/" + myAddress)),
-                                        mFace, onDataCallback);
+                                // send registration interest to group owner (MUST BE FRESH)
+                                Interest interest = new Interest(new Name("/ndn/wifid/register/" +
+                                        groupOwnerAddress + "/" + myAddress + "/" + System.currentTimeMillis()));
+                                interest.setMustBeFresh(true);
+
+                                mController.sendInterest(interest, mFace, onDataCallback);
 
                                 Log.d(TAG, "Registration Interest sent.");
 

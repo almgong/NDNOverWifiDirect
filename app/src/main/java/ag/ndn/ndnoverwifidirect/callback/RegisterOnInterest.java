@@ -27,24 +27,29 @@ public class RegisterOnInterest implements NDNCallBackOnInterest {
 
     @Override
     public void doJob(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
-        Log.d(TAG, "Received interest with prefix " + interest.getName().toUri());
+        Log.d(TAG, "Received interest with prefix " + interest.getName());
 
+        /**
+         * Prefixes for registration interests have form:
+         *
+         * /ndn/wifid/register/<peer_ip>/timestamp
+         */
         String[] interestNameArr = interest.getName().toUri().split("/");
-        String peerIp = interestNameArr[interestNameArr.length-1];
+        String peerIp = interestNameArr[interestNameArr.length-2];
 
-        // send an acknowledgement data packet
+        // create an acknowledgement data packet
         Data response = new Data();
         response.setName(new Name(interest.getName().toUri()));
 
-        // generate hardcoded registration response
+        // generate egistration response payload
         /*
-            MESSAGE\n
+            <ARBITRARY MESSAGE>\n
             <NUMBER OF PEERS>
             <LIST OF PEER IPs\n...>
             <NUMBER OF PREFIXES YOU HANDLE>
             <LIST OF PREFIXES\n...>
          */
-        String regRes = "Hi! Got your registration interest - 8/28/2016.\n";
+        String regRes = "Hi! Got your registration interest -" + System.currentTimeMillis() + ".\n";
 
         // num peers
         regRes += (mController.enumerateLoggedFaces().size()+"\n");  // never includes localhost
@@ -69,7 +74,7 @@ public class RegisterOnInterest implements NDNCallBackOnInterest {
         response.setContent(payload);
 
         // if peer is not logged by this device, ask for prefixes handled
-        if (NDNOverWifiDirect.getInstance().getFaceByUri(peerIp) == null) {
+        if (NDNOverWifiDirect.getInstance().getFaceByIp(peerIp) == null) {
 
             Log.d(TAG, "New peer, sending interest to ask for prefixes handled...");
 
@@ -92,7 +97,7 @@ public class RegisterOnInterest implements NDNCallBackOnInterest {
         }
 
         // associate peer to a direct face
-        NDNOverWifiDirect.getInstance().logFace(peerIp, face);
+        mController.logFace(peerIp, face);
 
         try {
             face.putData(response);

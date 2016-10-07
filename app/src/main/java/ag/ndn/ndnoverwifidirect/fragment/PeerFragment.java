@@ -84,12 +84,12 @@ public class PeerFragment extends Fragment {
                 recyclerView.setLayoutManager(new GridLayoutManager(context, mColumnCount));
             }
 
-            Peer peer = new Peer();
-            peer.setId("id");
-            peer.setDeviceAddress("a device address::::");
-            PeerList.addPeer(peer);
-
-            adapter.notifyDataSetChanged();
+//            Peer peer = new Peer();
+//            peer.setId("id");
+//            peer.setDeviceAddress("a device address::::");
+//            PeerList.addPeer(peer);
+//
+//            adapter.notifyDataSetChanged();
 
             recyclerView.setAdapter(adapter);
         }

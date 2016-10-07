@@ -47,7 +47,6 @@ public class RegisterOnData implements NDNCallbackOnData {
         // logic for registering prefixes of the group owner
         ArrayList<String> prefixesToLog = new ArrayList<String>(numPrefixes);
         for (int i = 0; i < numPrefixes; i++) {
-
             String currPrefix = responseArray[numPeers+ 2 + 1 + i];
             Log.d(TAG, "adding prefix: " + currPrefix);
             prefixesToLog.add(currPrefix);
