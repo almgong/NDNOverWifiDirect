@@ -48,6 +48,10 @@ public class VideoPlayerBuffer {
         }
     }
 
+    public void clearBuffer() {
+        buffer.clear();
+    }
+
     public void notifyEofReached() {
         eofReached = true;
     }

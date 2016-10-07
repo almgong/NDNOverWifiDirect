@@ -28,8 +28,11 @@ import java.util.LinkedList;
 public class VideoPlayer {
 
     // constants
-    private final int ITEM_SIZE = 2000;     // in bytes
-    private final int MAX_CACHED_ITEMS = 5; // number of incoming packets cacheable at a given time
+    public static final byte EOF_FLAG = 0;
+    public static final byte DATA_FLAG = 1;
+    public static final byte RESUME_FLAG = 2;
+    public static final byte PAUSE_FLAG = 3;
+    public static final byte SEEK_FLAG = 4;
 
     // singleton
     private static SimpleExoPlayer player = null;
