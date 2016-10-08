@@ -212,13 +212,15 @@ public class NDNOverWifiDirect extends NfdcHelper {
         return task;
     }
 
-    // catch-all-like send interest function, sends to all faces, deprecated for lack of purpose
-    @Deprecated
-    public void sendInterestToAllFaces(Interest interest) {
-        for (String faceUri : faceMap.keySet()) {
-           SendInterestTask task = new SendInterestTask(interest, faceMap.get(faceUri));
-            task.execute();
-        }
+    // same as AsyncTask sendInterest(Interest interest, Face face, OnData onData) if you
+    // pass true as the value for setKeyChain.
+    // Otherwise, allows you to reuse a face if you know that this face has already been prepared with
+    // a keychain.
+    public AsyncTask sendInterest(Interest interest, Face face, OnData onData, boolean setKeyChain) {
+        SendInterestTask task = new SendInterestTask(interest, face, onData);
+        task.setGenerateKeyChain(setKeyChain);
+        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR); // parallel handling of async tasks
+        return task;
     }
 
     // uses TCP as transport protocol, creates face and registers RIB entry(ies)

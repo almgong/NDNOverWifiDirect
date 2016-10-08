@@ -24,6 +24,7 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
     private OnData onDataCallback;
 
     private boolean mStopProcessing = false;
+    private boolean setKeyChain = true;         // by default, we will set the keychain using defaults
 
     // minimal constructor, useful really for debugging or sending interests with no care about data
     public SendInterestTask(Interest interest, Face face) {
@@ -48,6 +49,10 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
         this.onDataCallback = onData;
     }
 
+    public void setGenerateKeyChain(boolean setKeyChain) {
+        this.setKeyChain = setKeyChain;
+    }
+
     // used to stop processing on a given face+interest
     public void setStopProcessing(boolean flag) {
         this.mStopProcessing = flag;
@@ -61,15 +66,17 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
 
         try {
 
-            KeyChain keyChain = NDNOverWifiDirect.getInstance().getKeyChain();
-            mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
+            if (setKeyChain) {
+                KeyChain keyChain = NDNOverWifiDirect.getInstance().getKeyChain();
+                mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
+            }
 
             // simple
             mFace.expressInterest(this.interest, this.onDataCallback);
 
             // Keep precessing events on the face (necessary) - 10 times max
             int counter = 0;
-            int numTries = 30000/1000 - 1; // TODO make this customizable by cstr
+            int numTries = 10000/1000 - 1; // TODO make this customizable by cstr
             while (!mStopProcessing) {  // should last until the response comes back
                 mFace.processEvents();
                 if (counter++ > numTries) {
