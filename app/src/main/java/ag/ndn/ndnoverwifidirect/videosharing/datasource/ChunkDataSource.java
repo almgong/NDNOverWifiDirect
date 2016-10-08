@@ -22,7 +22,7 @@ public class ChunkDataSource implements DataSource {
 
     private VideoPlayerBuffer videoPlayerBuffer;
     private byte[] current = new byte[0];
-    private int waitTime = 350;         // ms time to wait in between calls to videoplayer buffer
+    private int waitTime = VideoPlayerBuffer.POLITENESS_DELAY; // ms time to wait in between calls to videoplayer buffer
     private boolean eofReached = false;
 
     public ChunkDataSource(VideoPlayerBuffer buffer) {

@@ -1,5 +1,7 @@
 package ag.ndn.ndnoverwifidirect.videosharing.callback;
 
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import net.named_data.jndn.Data;
@@ -9,9 +11,16 @@ import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.util.Blob;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import ag.ndn.ndnoverwifidirect.callback.NDNCallBackOnInterest;
+import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayer;
+import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
+
+import static android.R.attr.data;
+import static android.os.Environment.getExternalStorageDirectory;
 
 /**
  * On receiving an interest for media data, return the requested
@@ -24,20 +33,69 @@ public class GetVideoOnInterest implements NDNCallBackOnInterest {
 
     private final String TAG = "GetOnVideoInterest";
 
+    private static boolean test = false;
+
     @Override
     public void doJob(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
 
         Log.d(TAG, "Got interest: " + interest.getName().toUri());
+        String[] nameArr = interest.getName().toString().split("/");
+        int sequenceNumber = Integer.parseInt(nameArr[nameArr.length - 1]);
+
+        // TODO lookup in Producer VideoResourceList for the correct local file name
+        String mediaName = nameArr[nameArr.length - 2];
+        String mediaPath = getExternalStorageDirectory() + "/" + Environment.DIRECTORY_MOVIES + "/big_buck_bunny.mp4";
 
         Data data = new Data();
         data.setName(interest.getName());
 
-        // for testing, return EOF byte
-        byte[] temp = new byte[1];
-        temp[0] = (byte)0;
+        // holds the media bytes to send back (or just the header if no bytes)
+        byte[] dataBytes;
+        int headerSize = 1;
 
-        Blob payload = new Blob(temp);
+        try {
+            int size = VideoPlayerBuffer.MAX_ITEM_SIZE;
 
+            // choose lesser of 2 (in case JNDN gets updated, etc.)
+            // see http://www.lists.cs.ucla.edu/pipermail/ndn-interest/2015-August/000780.html
+            // for why we limit to half of the practical limit
+            int limit = (face.getMaxNdnPacketSize()*3)/4;   // 75% of practical limit
+            if (limit < VideoPlayerBuffer.MAX_ITEM_SIZE) {
+                size = limit-headerSize;
+            }
+
+            FileInputStream fis = new FileInputStream(mediaPath);
+
+            byte[] temp = new byte[size-headerSize];
+
+            // seek (skip) to the desired byte offset
+            int skipAmount = 0;
+            if (sequenceNumber > 0) {
+                skipAmount = sequenceNumber*size-headerSize;
+            }
+
+            long skipped = -1;
+            while(skipped != skipAmount) {
+                skipped = fis.skip((long) skipAmount);
+            }
+
+            // read bytes to temporary array (temp has length = max size already)
+            int bytesRead = fis.read(temp, 0, temp.length);
+
+            if (bytesRead == -1) {
+                dataBytes = new byte[1];
+                dataBytes[0] = VideoPlayer.EOF_FLAG;
+            } else {
+                dataBytes = new byte[bytesRead+headerSize];      // +1 for the header byte
+                dataBytes[0] = VideoPlayer.DATA_FLAG;
+                System.arraycopy(temp, 0, dataBytes, 1, bytesRead);
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+        Blob payload = new Blob(dataBytes);
         data.setContent(payload);
 
         try {
