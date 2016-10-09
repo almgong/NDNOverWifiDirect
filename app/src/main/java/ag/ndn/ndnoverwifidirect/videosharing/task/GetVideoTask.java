@@ -1,6 +1,7 @@
 package ag.ndn.ndnoverwifidirect.videosharing.task;
 
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.util.Log;
 
 import net.named_data.jndn.Data;
@@ -10,14 +11,20 @@ import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
 import net.named_data.jndn.security.KeyChain;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayer;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
+import ag.ndn.ndnoverwifidirect.videosharing.callback.GetVideoOnData;
 
 import static android.content.ContentValues.TAG;
+import static android.os.Environment.getExternalStorageDirectory;
 
 /**
  * Asynchronous task that will repeatedly query network
@@ -47,18 +54,27 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
         stop = toStop;
     }
 
+    // new method
+    int windowSize = 3;     // this is a tuneable parameter, depends on number of cores on device
+    TransmissionWindow window = new TransmissionWindow(windowSize, this.buffer); // window size of 10
+    int taskNumber = window.endIndex;
+    Face[] faces;
+
+    // temp
+    //FileInputStream fis = null;
+
+    long start;
+
     @Override
     protected Void doInBackground(String... params) {
-        boolean bufferFull = false;
-        int bytesRead = 0;
-        final Face mFace = new Face("localhost");
 
-        try {
-            KeyChain keyChain = NDNOverWifiDirect.getInstance().getKeyChain();
-            mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        /**
+         * Method 1: Daisy Chaining
+         *
+         * This method is best used on weaker devices, wherein the overhead of
+         * creating more threads is NOT ideal.
+         */
+
 
         /**
          * Data should be in form:
@@ -71,6 +87,7 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
          */
         // send out interest with sequence number, e.g. /ndn/wifid/movie/[sequenceNumber], seqNum starts at 1
         final String prefix = params[0];
+        final Face mFace = new Face("localhost");
         onDataReceived = new OnData() {
 
             @Override
@@ -86,26 +103,33 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
                     // there was no data in resp, meaning all data sent for resource
                     // looping stops here
                     buffer.notifyEofReached(); // probably should be done a different way TODO maybe have a EOF byte[] added to buffer
+                    buffer.addToBuffer(new byte[0]);
                     Log.d(TAG, String.format("All data from %s has been processed from peer, or stop was set.", prefix));
 
                 } else if (payload[0] == VideoPlayer.DATA_FLAG) { // packet contains data
-
+                    System.err.println("Took " + (System.currentTimeMillis()-start + " ms to get packet"));
                     System.out.println("Size of entire payload is: " + payload.length);
 
                     // parse custom header
                     byte[] dataToBuffer = Arrays.copyOfRange(payload, 1, payload.length);
-                    while ((buffer.addToBuffer(dataToBuffer)) == false) {
-                        Log.d(TAG, "Could not add to buffer");
+
+                    boolean bufferFull = !(buffer.addToBuffer(dataToBuffer));
+                    while (bufferFull) {
+                        Log.d(TAG, "Buffer full, trying again...");
                         try {
                             Thread.sleep(VideoPlayerBuffer.POLITENESS_DELAY);
                         } catch (Exception e) {
                             e.printStackTrace();
                             return;
                         }
+
+                        bufferFull = !(buffer.addToBuffer(dataToBuffer));
                     }
 
                     // if there was data in this resp, daisy chain for next
                     Log.d(TAG, "Daisy chaining for " + (sequenceNumber+1));
+
+                    start = System.currentTimeMillis();
                     currentSendInterestTask = (SendInterestTask) mController.sendInterest(new Interest(new Name(prefix + "/" + (++sequenceNumber))), mFace, onDataReceived, false);
 
                 } else if (payload[0] == VideoPlayer.PAUSE_FLAG) {
@@ -119,8 +143,147 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
         };
 
         Log.d(TAG, "Sending first interest for video data...");
+        start = System.currentTimeMillis();
         currentSendInterestTask = (SendInterestTask) mController.sendInterest(new Interest(new Name(prefix + "/" + sequenceNumber)), mFace, onDataReceived, false);
 
+
+        if (true) return null;
+
+        // new method using transmission window -- really only a good option if device is strong enough
+
+        // until either the calling activity, or this class wants to stop
+        sequenceNumber = 0;
+        faces = new Face[windowSize];               // array of faces to use with window
+        for (int i = 0; i < faces.length; i++) {
+            faces[i] = new Face("localhost");
+        }
+        //final String prefix = params[0];
+        while (!stop) {
+            if (buffer.isFull() || window.isFull()) {
+                try {
+
+                    if (buffer.isFull() ) {
+                        Log.d(TAG, "Buffer full, sleep");
+                    } else if (window.isFull()) {
+                        Log.d(TAG, "window is full, sleep");
+                    } else {
+                        Log.d(TAG, "Either video buffer is full or task queue is full, sleep...");
+                    }
+
+                    Thread.sleep(VideoPlayerBuffer.POLITENESS_DELAY);
+                    window.sendToBuffer();  // perhaps some delayed packets (or missing segment holding line up)
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return null;
+                }
+
+                continue;
+            }
+
+            // fill free window spots with tasks (or rather, their "soon-to-be" data
+            for (int i = 0; i < window.numFreeSlots; i++) {
+                final int taskNum = window.endIndex;
+                System.err.println("Starting task: " + taskNum);
+                onDataReceived = new OnData() {
+                    @Override
+                    public void onData(Interest interest, Data data) {
+                        (new GetVideoOnData(taskNum, window, buffer)).doJob(interest, data);
+                    }
+                };
+
+                Log.d(TAG, "Sequence number: " + sequenceNumber);
+                mController.sendInterest(new Interest(new Name(prefix + "/" + sequenceNumber++)), faces[window.endIndex], onDataReceived, false);
+
+                // update book keeping variables
+                window.endIndex = (window.endIndex + 1)%windowSize;
+                window.numFreeSlots--;
+            }
+
+            System.err.println("Current endIndex: " + window.endIndex + " free: " + window.numFreeSlots);
+
+            try {
+                Thread.sleep(VideoPlayerBuffer.POLITENESS_DELAY*2);     // want ~ 1 second wait for data to come back
+                window.sendToBuffer();  // send contiguous bytes to buffer
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
         return null;
+    }
+
+    /**
+     * Inner class representing a TCP-like transmission window, with
+     * some specific modifications to be used along with GetVideoTask.
+     *
+     * The internal implementation somewhat resembles a circular queue, but because
+     * we are allowing direct setting of index values, it is a little different.
+     */
+    public class TransmissionWindow {
+        private int startIndex;         // points to first active slot
+        private int endIndex;           // used in outer class for book keeping, points to index of first free slot
+        private int numFreeSlots;       // number of openings (non-active slots), used primarily in outer class
+
+        //private VideoPlayerBuffer buffer;
+        private byte[][] window;
+
+        public TransmissionWindow(int size, VideoPlayerBuffer buffer) {
+            window = new byte[size][];
+            for (int i = 0; i < window.length; i++) {
+                window[i] = null;
+            }
+            startIndex = 0;
+            endIndex = 0;
+            numFreeSlots = size;
+            //this.buffer = buffer;
+        }
+
+        // most likely only ever called in main thread
+        public boolean isEmpty() {
+            return numFreeSlots == window.length;
+        }
+
+        public boolean isFull() {
+            return numFreeSlots == 0;
+        }
+
+        // only called in main thread (no multithreading support needed)
+        public void sendToBuffer() {
+
+            byte[] curr;
+            int i = 0;
+            while ((curr = window[startIndex]) != null) {
+                buffer.addToBuffer(curr);                   // add to buffer
+                window[startIndex] = null;                  // null out the data
+                startIndex = (startIndex+1)%window.length;  // update start index
+                numFreeSlots++;                             // one more free slot opened up
+
+                i++;
+            }
+
+            System.err.println("Sent " + i + " packets to buffer");
+        }
+
+        // is called in multiple threads, BUT each thread in our case
+        // has a unique index assigned to them, so no need to synchronize
+        public void setSlot(int index, byte[] data) {
+            window[index] = data;
+        }
+
+        // flushes remaining items to buffer
+        public void flush() {
+            while (!isEmpty()) {
+                sendToBuffer();
+                try {
+                    Thread.sleep(500);      // give network some time to fill in remaining bytes
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
     }
 }

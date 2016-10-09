@@ -13,7 +13,10 @@ import net.named_data.jndn.security.KeyChain;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
 /**
- * May need to create a thread in case the async task takes too long (waiting for data)
+ * May need to create a thread in case the async task takes too long (waiting for data). This
+ * task should really be used for "one-off" interests, rather than sending multiple, time-dependent
+ * interests.
+ *
  * Created by allengong on 7/29/16.
  */
 public class SendInterestTask extends AsyncTask<Void, Void, Void> {
@@ -66,10 +69,10 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
 
         try {
 
-            if (setKeyChain) {
-                KeyChain keyChain = NDNOverWifiDirect.getInstance().getKeyChain();
-                mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
-            }
+//            if (setKeyChain) {
+//                KeyChain keyChain = NDNOverWifiDirect.getInstance().getKeyChain();
+//                mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
+//            }
 
             // simple
             mFace.expressInterest(this.interest, this.onDataCallback);
@@ -80,10 +83,10 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
             while (!mStopProcessing) {  // should last until the response comes back
                 mFace.processEvents();
                 if (counter++ > numTries) {
-                    Log.d(TAG, "Stop processing on face listening for interest: " + interest.getName().toUri());
+                    //Log.d(TAG, "Stop processing on face listening for interest: " + interest.getName().toUri());
                     break;
                 }
-                Thread.sleep(1000);
+                Thread.sleep(500);
             }
 
         } catch (Exception e) {

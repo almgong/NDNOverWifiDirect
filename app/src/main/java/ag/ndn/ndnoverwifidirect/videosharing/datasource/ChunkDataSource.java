@@ -7,7 +7,6 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
 
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.util.Arrays;
 
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;

@@ -13,6 +13,7 @@ import net.named_data.jndn.util.Blob;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 
 import ag.ndn.ndnoverwifidirect.callback.NDNCallBackOnInterest;
@@ -35,16 +36,22 @@ public class GetVideoOnInterest implements NDNCallBackOnInterest {
 
     private static boolean test = false;
 
+    private RandomAccessFile ras = null;
+
+    // the calling activity should be aware of the file to open,
+    // to avoid re-opening files, pass the stream as a mandatory argument
+    // note that this task does not take care of closing the stream, that is
+    // left to the calling activity
+    public GetVideoOnInterest(RandomAccessFile ras) {
+        this.ras = ras;
+    }
+
     @Override
     public void doJob(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
 
         Log.d(TAG, "Got interest: " + interest.getName().toUri());
         String[] nameArr = interest.getName().toString().split("/");
         int sequenceNumber = Integer.parseInt(nameArr[nameArr.length - 1]);
-
-        // TODO lookup in Producer VideoResourceList for the correct local file name
-        String mediaName = nameArr[nameArr.length - 2];
-        String mediaPath = getExternalStorageDirectory() + "/" + Environment.DIRECTORY_MOVIES + "/big_buck_bunny.mp4";
 
         Data data = new Data();
         data.setName(interest.getName());
@@ -59,33 +66,36 @@ public class GetVideoOnInterest implements NDNCallBackOnInterest {
             // choose lesser of 2 (in case JNDN gets updated, etc.)
             // see http://www.lists.cs.ucla.edu/pipermail/ndn-interest/2015-August/000780.html
             // for why we limit to half of the practical limit
-            int limit = (face.getMaxNdnPacketSize()*3)/4;   // 75% of practical limit
+            int limit = (face.getMaxNdnPacketSize()*95)/100;   // 95% of practical limit
             if (limit < VideoPlayerBuffer.MAX_ITEM_SIZE) {
                 size = limit-headerSize;
             }
 
-            FileInputStream fis = new FileInputStream(mediaPath);
-
             byte[] temp = new byte[size-headerSize];
 
             // seek (skip) to the desired byte offset
-            int skipAmount = 0;
+            long skipAmount = 0;
             if (sequenceNumber > 0) {
-                skipAmount = sequenceNumber*size-headerSize;
+                skipAmount = sequenceNumber*(size-headerSize);
+                //skipAmount = size-headerSize;
             }
 
-            long skipped = -1;
-            while(skipped != skipAmount) {
-                skipped = fis.skip((long) skipAmount);
-            }
+            //long skipped = -1;
+            //while(skipped != skipAmount) {
+             //   skipped = fis.skip((long) skipAmount);
+            //}
+
+            ras.seek(skipAmount);       // seek to desired position
 
             // read bytes to temporary array (temp has length = max size already)
-            int bytesRead = fis.read(temp, 0, temp.length);
-
+            Log.d(TAG, "Read from: " + sequenceNumber*(size-headerSize) + "-" + (skipAmount+temp.length));
+//            int bytesRead = fis.read(temp, 0, temp.length);
+            int bytesRead = ras.read(temp);
             if (bytesRead == -1) {
                 dataBytes = new byte[1];
                 dataBytes[0] = VideoPlayer.EOF_FLAG;
             } else {
+                Log.d(TAG, "[ " + sequenceNumber + " ] read : " + bytesRead + " bytes.");
                 dataBytes = new byte[bytesRead+headerSize];      // +1 for the header byte
                 dataBytes[0] = VideoPlayer.DATA_FLAG;
                 System.arraycopy(temp, 0, dataBytes, 1, bytesRead);
@@ -93,6 +103,15 @@ public class GetVideoOnInterest implements NDNCallBackOnInterest {
         } catch(Exception e) {
             e.printStackTrace();
             return;
+        } finally {
+            if (ras != null) {
+                try {
+
+                    //fis.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
         Blob payload = new Blob(dataBytes);

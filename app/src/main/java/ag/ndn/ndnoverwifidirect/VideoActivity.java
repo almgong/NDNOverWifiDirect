@@ -2,6 +2,7 @@ package ag.ndn.ndnoverwifidirect;
 
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -33,6 +34,8 @@ import net.named_data.jndn.security.KeyChain;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.RandomAccess;
 
 import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
@@ -43,6 +46,8 @@ import ag.ndn.ndnoverwifidirect.videosharing.callback.GetVideoOnInterest;
 import ag.ndn.ndnoverwifidirect.videosharing.datasource.ChunkDataSource;
 import ag.ndn.ndnoverwifidirect.videosharing.datasource.ChunkDataSourceFactory;
 import ag.ndn.ndnoverwifidirect.videosharing.task.GetVideoTask;
+
+import static android.os.Environment.getExternalStorageDirectory;
 
 public class VideoActivity extends AppCompatActivity {
 
@@ -62,6 +67,8 @@ public class VideoActivity extends AppCompatActivity {
     private GetVideoTask getVideoTask;
     private RegisterPrefixTask pushVideoTask;
     private String currentPrefix;
+    //private FileInputStream videoInputStream = null;
+    private RandomAccessFile ras = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,7 +113,9 @@ public class VideoActivity extends AppCompatActivity {
                     handler, new ExtractorMediaSource.EventListener() {
                 @Override
                 public void onLoadError(IOException error) {
-                    Log.e(TAG, error.getMessage());
+                    if (error.getMessage() != null) {
+                        Log.e(TAG, error.getMessage());
+                    }
                 }
             });
 
@@ -134,12 +143,22 @@ public class VideoActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
 
-        if (bundle.getBoolean("isLocal")) {
+        if (bundle.getBoolean("isLocal")) {                     // producer
             // stop responding to interests towards this prefix
             pushVideoTask.setStopProcessing(true);
             mController.removePrefixHandled(currentPrefix);
-        } else {
+
+            // close input stream if it is open
+            if (ras != null) {
+                try {
+                    ras.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        } else {                                                // consumer
             getVideoTask.stop(true);
+            videoPlayerBuffer.clearBuffer();
         }
 
         player.release();
@@ -162,6 +181,8 @@ public class VideoActivity extends AppCompatActivity {
         getVideoTask = new GetVideoTask(videoPlayerBuffer);
         getVideoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, prefix);
         Log.d(TAG, "Started GetVideoTask...");
+
+        //player.setPlayWhenReady(true);
     }
 
     /**
@@ -171,26 +192,27 @@ public class VideoActivity extends AppCompatActivity {
      */
     private void registerVideoPrefix(String prefix) {
         Log.d(TAG, "REGISTERING VIDEO PREFIX FOR SHARING...");
-//        Face mFace = mController.getFaceByIp(WiFiDirectBroadcastReceiver.groupOwnerAddress);
-//        if (mFace == null) {
-//            mFace = new Face("localhost");
-//        }
         Face mFace = new Face("localhost");
 
+        // TODO lookup in Producer VideoResourceList for the correct local file name - actually ProducerActivity should be in charge of this...
+
+        String mediaPath = getExternalStorageDirectory() + "/" + Environment.DIRECTORY_MOVIES + "/big_buck_bunny.mp4";
+
         try {
-            KeyChain keyChain = mController.getKeyChain();
-            mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
+            //videoInputStream = new FileInputStream(mediaPath);
+            ras = new RandomAccessFile(mediaPath, "r");
         } catch (Exception e) {
             e.printStackTrace();
+            Log.e(TAG, "Could not open video resource to share...");
             return;
         }
+
          pushVideoTask = (RegisterPrefixTask)mController.registerPrefix(mFace, prefix, new OnInterestCallback() {
 
             @Override
             public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
-                Log.d(TAG, "Got some data, return dummy data");
-                (new GetVideoOnInterest()).doJob(prefix, interest,face, interestFilterId, filter);
+                (new GetVideoOnInterest(ras)).doJob(prefix, interest,face, interestFilterId, filter);
             }
-        }, false, 500);
+        }, false, 350);
     }
 }
