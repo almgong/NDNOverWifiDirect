@@ -213,6 +213,6 @@ public class VideoActivity extends AppCompatActivity {
             public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
                 (new GetVideoOnInterest(ras)).doJob(prefix, interest,face, interestFilterId, filter);
             }
-        }, false, 350);
+        }, false, 100);
     }
 }

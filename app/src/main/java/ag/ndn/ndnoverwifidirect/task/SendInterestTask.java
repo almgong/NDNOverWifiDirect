@@ -65,8 +65,6 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
 
         Log.d(TAG, "attempting to send out interest " + interest.getName().toUri());
 
-        //Face mFace = new Face("localhost"); // may or may not be correct
-
         try {
 
 //            if (setKeyChain) {
@@ -79,14 +77,14 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
 
             // Keep precessing events on the face (necessary) - 10 times max
             int counter = 0;
-            int numTries = 10000/1000 - 1; // TODO make this customizable by cstr
+            int numTries = 50; // TODO make this customizable by cstr
             while (!mStopProcessing) {  // should last until the response comes back
                 mFace.processEvents();
                 if (counter++ > numTries) {
                     //Log.d(TAG, "Stop processing on face listening for interest: " + interest.getName().toUri());
                     break;
                 }
-                Thread.sleep(500);
+                Thread.sleep(100);
             }
 
         } catch (Exception e) {
