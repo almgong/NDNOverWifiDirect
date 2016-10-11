@@ -41,6 +41,7 @@ import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.model.PeerList;
 import ag.ndn.ndnoverwifidirect.task.FaceCreateTask;
 import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
+import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
 /**
@@ -68,6 +69,8 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
     // wifid ip addresses of group owner and self
     public static String groupOwnerAddress = "";
     public static String myAddress = "";
+
+    private SendInterestTask registrationInterestTask;
 
     public WiFiDirectBroadcastReceiver(WifiP2pManager manager, Channel channel,
                                        Activity activity) { // was MyWifiActivity
@@ -238,6 +241,9 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                                 OnData onDataCallback = new OnData() {
                                     @Override
                                     public void onData(Interest interest, Data data) {
+                                        registrationInterestTask.setStopProcessing(true);
+
+                                        // do soemthing with the data
                                         (new RegisterOnData()).doJob(interest, data);
                                     }
                                 };
@@ -247,7 +253,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                                         groupOwnerAddress + "/" + myAddress + "/" + System.currentTimeMillis()));
                                 interest.setMustBeFresh(true);
 
-                                mController.sendInterest(interest, mFace, onDataCallback);
+                                registrationInterestTask = (SendInterestTask) mController.sendInterest(interest, mFace, onDataCallback);
 
                                 Log.d(TAG, "Registration Interest sent.");
 

@@ -2,48 +2,34 @@ package ag.ndn.ndnoverwifidirect;
 
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.widget.VideoView;
 
-import com.google.android.exoplayer2.ExoPlaybackException;
-import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
-import com.google.android.exoplayer2.extractor.mp4.FragmentedMp4Extractor;
-import com.google.android.exoplayer2.extractor.mp4.Mp4Extractor;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.source.SingleSampleMediaSource;
 import com.google.android.exoplayer2.ui.SimpleExoPlayerView;
-import com.google.android.exoplayer2.upstream.FileDataSource;
 import com.google.android.exoplayer2.upstream.FileDataSourceFactory;
-import com.google.common.io.Files;
 
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.OnInterestCallback;
-import net.named_data.jndn.security.KeyChain;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.RandomAccess;
 
 import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
-import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayer;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
 import ag.ndn.ndnoverwifidirect.videosharing.callback.GetVideoOnInterest;
-import ag.ndn.ndnoverwifidirect.videosharing.datasource.ChunkDataSource;
 import ag.ndn.ndnoverwifidirect.videosharing.datasource.ChunkDataSourceFactory;
 import ag.ndn.ndnoverwifidirect.videosharing.task.GetVideoTask;
 
@@ -213,6 +199,6 @@ public class VideoActivity extends AppCompatActivity {
             public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
                 (new GetVideoOnInterest(ras)).doJob(prefix, interest,face, interestFilterId, filter);
             }
-        }, false, 100);
+        }, false, 50);  // process events every 50 ms
     }
 }

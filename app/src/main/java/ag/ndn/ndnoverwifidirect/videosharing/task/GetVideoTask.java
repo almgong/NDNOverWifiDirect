@@ -88,6 +88,7 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
         // send out interest with sequence number, e.g. /ndn/wifid/movie/[sequenceNumber], seqNum starts at 1
         final String prefix = params[0];
         final Face mFace = new Face("localhost");
+        final int processEventsTimer = 50;
         onDataReceived = new OnData() {
 
             @Override
@@ -130,7 +131,8 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
                     Log.d(TAG, "Daisy chaining for " + (sequenceNumber+1));
 
                     start = System.currentTimeMillis();
-                    currentSendInterestTask = (SendInterestTask) mController.sendInterest(new Interest(new Name(prefix + "/" + (++sequenceNumber))), mFace, onDataReceived, false);
+                    currentSendInterestTask = (SendInterestTask) mController.sendInterest(new Interest(new Name(prefix + "/" + (++sequenceNumber))), mFace,
+                            onDataReceived, processEventsTimer);
 
                 } else if (payload[0] == VideoPlayer.PAUSE_FLAG) {
                     // pause video player
@@ -144,7 +146,8 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
 
         Log.d(TAG, "Sending first interest for video data...");
         start = System.currentTimeMillis();
-        currentSendInterestTask = (SendInterestTask) mController.sendInterest(new Interest(new Name(prefix + "/" + sequenceNumber)), mFace, onDataReceived, false);
+        currentSendInterestTask = (SendInterestTask) mController.sendInterest(new Interest(new Name(prefix + "/" + sequenceNumber)),
+                mFace, onDataReceived, processEventsTimer);
 
 
         if (true) return null;
@@ -170,7 +173,7 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
                         Log.d(TAG, "Either video buffer is full or task queue is full, sleep...");
                     }
 
-                    Thread.sleep(VideoPlayerBuffer.POLITENESS_DELAY);
+                    Thread.sleep(100);
                     window.sendToBuffer();  // perhaps some delayed packets (or missing segment holding line up)
 
                 } catch (Exception e) {
@@ -193,7 +196,7 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
                 };
 
                 Log.d(TAG, "Sequence number: " + sequenceNumber);
-                mController.sendInterest(new Interest(new Name(prefix + "/" + sequenceNumber++)), faces[window.endIndex], onDataReceived, false);
+                mController.sendInterest(new Interest(new Name(prefix + "/" + sequenceNumber++)), faces[window.endIndex], onDataReceived, 50);
 
                 // update book keeping variables
                 window.endIndex = (window.endIndex + 1)%windowSize;
@@ -203,7 +206,7 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
             System.err.println("Current endIndex: " + window.endIndex + " free: " + window.numFreeSlots);
 
             try {
-                Thread.sleep(VideoPlayerBuffer.POLITENESS_DELAY*2);     // want ~ 1 second wait for data to come back
+                Thread.sleep(100);      // want a little for data to come back
                 window.sendToBuffer();  // send contiguous bytes to buffer
 
             } catch (Exception e) {
