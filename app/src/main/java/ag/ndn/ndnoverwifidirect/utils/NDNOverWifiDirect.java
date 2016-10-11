@@ -212,13 +212,9 @@ public class NDNOverWifiDirect extends NfdcHelper {
         return task;
     }
 
-    // same as AsyncTask sendInterest(Interest interest, Face face, OnData onData) if you
-    // pass true as the value for setKeyChain.
-    // Otherwise, allows you to reuse a face if you know that this face has already been prepared with
-    // a keychain.
-    public AsyncTask sendInterest(Interest interest, Face face, OnData onData, boolean setKeyChain) {
+    public AsyncTask sendInterest(Interest interest, Face face, OnData onData, int processEventsTimer) {
         SendInterestTask task = new SendInterestTask(interest, face, onData);
-        task.setGenerateKeyChain(setKeyChain);
+        task.setProcessEventsTimer(processEventsTimer);
         task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR); // parallel handling of async tasks
         return task;
     }

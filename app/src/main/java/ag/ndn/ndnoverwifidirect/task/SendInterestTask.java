@@ -27,8 +27,7 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
     private OnData onDataCallback;
 
     private boolean mStopProcessing = false;
-    private boolean setKeyChain = true;         // by default, we will set the keychain using defaults
-
+    private int processEventsTimer = 100;       // ms
     // minimal constructor, useful really for debugging or sending interests with no care about data
     public SendInterestTask(Interest interest, Face face) {
         this.interest = interest;
@@ -52,8 +51,8 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
         this.onDataCallback = onData;
     }
 
-    public void setGenerateKeyChain(boolean setKeyChain) {
-        this.setKeyChain = setKeyChain;
+    public void setProcessEventsTimer(int timer) {
+        this.processEventsTimer = timer;
     }
 
     // used to stop processing on a given face+interest
@@ -67,24 +66,19 @@ public class SendInterestTask extends AsyncTask<Void, Void, Void> {
 
         try {
 
-//            if (setKeyChain) {
-//                KeyChain keyChain = NDNOverWifiDirect.getInstance().getKeyChain();
-//                mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
-//            }
-
             // simple
             mFace.expressInterest(this.interest, this.onDataCallback);
 
             // Keep precessing events on the face (necessary) - 10 times max
             int counter = 0;
-            int numTries = 50; // TODO make this customizable by cstr
+            int numTries = 5000/processEventsTimer; // 5 seconds overall
             while (!mStopProcessing) {  // should last until the response comes back
                 mFace.processEvents();
                 if (counter++ > numTries) {
                     //Log.d(TAG, "Stop processing on face listening for interest: " + interest.getName().toUri());
                     break;
                 }
-                Thread.sleep(100);
+                Thread.sleep(processEventsTimer);
             }
 
         } catch (Exception e) {
