@@ -20,7 +20,8 @@ import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
 public class ChunkDataSource implements DataSource {
 
     private VideoPlayerBuffer videoPlayerBuffer;
-    private byte[] current = new byte[0];
+    private final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    private byte[] current = EMPTY_BYTE_ARRAY;                  // initial value
     private int waitTime = VideoPlayerBuffer.POLITENESS_DELAY; // ms time to wait in between calls to videoplayer buffer
     private boolean eofReached = false;
 
@@ -44,40 +45,26 @@ public class ChunkDataSource implements DataSource {
 
         // used to temporarily store each response from VideoPlayerBuffer
         byte[] tempBuffer;
+        int bytesRead = 0;
 
-        // if we have any bytes left in "cached" byte array
+        // if there is something left in the "cached" byte array
         if (current.length > 0) {
 
-            // if there is enough bytes in current to satisfy this call
+            // if there is enough bytes to satisfy this call
             if (readLength <= current.length) {
 
                 System.arraycopy(current, 0, buffer, offset, readLength);
                 current = Arrays.copyOfRange(current, readLength, current.length); // [readLength:]
-
+                bytesRead = readLength;
             } else {
-                // uh oh, need to grab a new tempBuffer and piece together the remaining bytes in current
-                while ((tempBuffer = videoPlayerBuffer.getFromBuffer()) == null) {
-                    try{
-                        Thread.sleep(waitTime);      // wait x seconds between each call as to not waste CPU cycles
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                } // end while
 
-                if (tempBuffer.length == 0) {   // no more bytes to retrieve, include last bytes in current
-                    System.arraycopy(current, 0, buffer, offset, current.length);
-                    eofReached = true;
-                    return current.length;
-                }
-
+                // uh oh, not enough, for now let's just return what we have
                 System.arraycopy(current, 0, buffer, offset, current.length);
-                System.arraycopy(tempBuffer, 0, buffer, offset+current.length, readLength-current.length);
-
-                // update current
-                current = Arrays.copyOfRange(tempBuffer, readLength-current.length, tempBuffer.length);
+                bytesRead = current.length;
+                current = EMPTY_BYTE_ARRAY;
             }
 
-        } else {        // else we do not have a cached chunk, or exactly all bytes have been used up
+        } else {
 
             while ((tempBuffer = videoPlayerBuffer.getFromBuffer()) == null) {
                 try{
@@ -87,16 +74,26 @@ public class ChunkDataSource implements DataSource {
                 }
             } // end while
 
+            // at this point, tempBuffer points to a non-null byte[]
             if (tempBuffer.length == 0) {
-                return C.RESULT_END_OF_INPUT;
+                eofReached = true;
+                return C.RESULT_END_OF_INPUT;       // signals EOF
             }
 
-            // at this point, tempBuffer points to a non-null byte[]
-            current = Arrays.copyOfRange(tempBuffer, readLength, tempBuffer.length);    // splice array [offset:]
-            System.arraycopy(tempBuffer, 0, buffer, offset, readLength);
+            // do a similar check, see if there are enough bytes in current buffer item to satisfy call
+            if (readLength <= tempBuffer.length) {
+                current = Arrays.copyOfRange(tempBuffer, readLength, tempBuffer.length);    // splice array [readLength:]
+                System.arraycopy(tempBuffer, 0, buffer, offset, readLength);
+                bytesRead = readLength;
+            } else {
+                // else not enough to satisfy, return what we have now
+                System.arraycopy(tempBuffer, 0, buffer, offset, tempBuffer.length);
+                bytesRead = tempBuffer.length;
+                current = EMPTY_BYTE_ARRAY;
+            }
         }
 
-        return readLength;
+        return bytesRead;       // return number of bytes returned by this call to read()
     }
 
     @Override
