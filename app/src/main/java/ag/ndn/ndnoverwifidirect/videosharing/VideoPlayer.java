@@ -2,6 +2,7 @@ package ag.ndn.ndnoverwifidirect.videosharing;
 
 import android.content.Context;
 import android.os.Handler;
+import android.provider.MediaStore;
 
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.ExoPlayer;
@@ -19,7 +20,7 @@ import com.google.android.exoplayer2.trackselection.TrackSelector;
 import java.util.LinkedList;
 
 /**
- * Simple singleton class representing a video player in NDNOverWifiD.
+ * Simple Factory class representing a video player in NDNOverWifiD.
  * Note that a ExoPlayer is returned, rather than an instance of
  * VideoPlayer.
  *
@@ -35,37 +36,29 @@ public class VideoPlayer {
     public static final byte SEEK_FLAG = 4;
 
     // singleton
-    private static SimpleExoPlayer player = null;
+    private SimpleExoPlayer player = null;  // each VideoPlayer has its own delegated ExoPlayer instance
 
     //ctrl
-    public static Handler handler;
-    private static BandwidthMeter bandwidthMeter;
-    private static TrackSelection.Factory videoTrackSelectionFactory;
-    private static TrackSelector trackSelector;
-    private static LoadControl loadControl;
+    private Handler handler;
+    private BandwidthMeter bandwidthMeter;
+    private TrackSelection.Factory videoTrackSelectionFactory;
+    private TrackSelector trackSelector;
+    private LoadControl loadControl;
 
-    // specific to the currently playing resource
-    private boolean isLocal;    // if the resource to load is local
-    private String videoUri;    // the Uri of the video currently displayed by this VideoPlayer
+    public VideoPlayer(Context context) {
+        handler = new Handler();
+        bandwidthMeter = new DefaultBandwidthMeter();
+        videoTrackSelectionFactory =
+                new AdaptiveVideoTrackSelection.Factory(bandwidthMeter);
 
-    private VideoPlayer() {}
+        trackSelector =
+                new DefaultTrackSelector(handler, videoTrackSelectionFactory);
 
-    public static SimpleExoPlayer getPlayer(Context context) {
+        loadControl = new DefaultLoadControl();
+        player = ExoPlayerFactory.newSimpleInstance(context, trackSelector, loadControl);
+    }
 
-        // if instance does not exist, create one
-        if (player == null) {
-            handler = new Handler();
-            bandwidthMeter = new DefaultBandwidthMeter();
-            videoTrackSelectionFactory =
-                    new AdaptiveVideoTrackSelection.Factory(bandwidthMeter);
-
-            trackSelector =
-                    new DefaultTrackSelector(handler, videoTrackSelectionFactory);
-
-            loadControl = new DefaultLoadControl();
-            player = ExoPlayerFactory.newSimpleInstance(context, trackSelector, loadControl);
-        }
-
-        return player;
+    public SimpleExoPlayer getPlayer() {
+        return this.player;
     }
 }

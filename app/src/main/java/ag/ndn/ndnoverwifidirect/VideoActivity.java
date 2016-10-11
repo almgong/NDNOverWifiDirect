@@ -45,7 +45,7 @@ public class VideoActivity extends AppCompatActivity {
 
     private SimpleExoPlayer player;
     private VideoPlayerBuffer videoPlayerBuffer = new VideoPlayerBuffer();
-    private Handler handler;
+    //private Handler handler;
 
     private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
 
@@ -53,7 +53,6 @@ public class VideoActivity extends AppCompatActivity {
     private GetVideoTask getVideoTask;
     private RegisterPrefixTask pushVideoTask;
     private String currentPrefix;
-    //private FileInputStream videoInputStream = null;
     private RandomAccessFile ras = null;
 
     @Override
@@ -67,8 +66,8 @@ public class VideoActivity extends AppCompatActivity {
         Log.d(TAG, "videoUri: " + bundle.getString("videoUri"));
 
         // get the simple exo video player
-        player = VideoPlayer.getPlayer(this);
-        handler = VideoPlayer.handler;
+        player = new VideoPlayer(this).getPlayer();
+        //handler = VideoPlayer.handler;
 
         // source to which ExoPlayer should read from
         MediaSource source = null;
@@ -96,7 +95,7 @@ public class VideoActivity extends AppCompatActivity {
             source = new ExtractorMediaSource(Uri.parse(""),
                     new ChunkDataSourceFactory(videoPlayerBuffer),
                     new DefaultExtractorsFactory(),
-                    handler, new ExtractorMediaSource.EventListener() {
+                    new Handler(), new ExtractorMediaSource.EventListener() {
                 @Override
                 public void onLoadError(IOException error) {
                     if (error.getMessage() != null) {
