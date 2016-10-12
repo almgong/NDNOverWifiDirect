@@ -38,4 +38,8 @@ public class VideoResourceList {
     public boolean removeFromList(VideoResource videoResource) {
         return videoList.remove(videoResource);
     }
+
+    public void clear() {
+        videoList.clear();
+    }
 }
