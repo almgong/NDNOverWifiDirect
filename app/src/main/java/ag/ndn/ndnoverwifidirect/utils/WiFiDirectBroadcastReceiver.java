@@ -193,7 +193,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                                 }
                             };
 
-                            mController.registerPrefix(mFace, prefixToRegister, cb, true, 5000);
+                            mController.registerPrefix(mFace, prefixToRegister, cb, true, 1000);
                             mController.setRegistrationPrefixComplete(true);
                             Log.d(TAG, "Registering registration prefix complete.");
 
