@@ -1,6 +1,7 @@
 package ag.ndn.ndnoverwifidirect;
 
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -8,11 +9,13 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 import ag.ndn.ndnoverwifidirect.videosharing.model.GlobalLists;
 import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResource;
 import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResourceList;
+import ag.ndn.ndnoverwifidirect.videosharing.task.GetAvailableVideosTask;
 
 /**
  * Activity for NDN consumers to access video resources (i.e. play available
@@ -23,6 +26,8 @@ public class ConsumerActivity extends AppCompatActivity {
     // handle to NDN controller
     private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
 
+    private GetAvailableVideosTask task;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -30,19 +35,22 @@ public class ConsumerActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        // UI
+        ProgressBar progressBar = (ProgressBar) findViewById(R.id.progressBarConsumer);
+        progressBar.setIndeterminate(true);
+
         // for list view; a list of remote video resources
         //TODO need to be able to retrieve using mController the prefixes reachable
         VideoResourceList videoResourceList = GlobalLists.getConsumerVideoResourceList();
+        videoResourceList.clear();
 
-        // init here //
-        int i = 0;
-        for (String prefix : mController.getRegisteredPrefixes()) {
-            videoResourceList.addToList(new VideoResource(i+1, prefix));
-            i++;
-        }
 
         ArrayAdapter<VideoResource> adapter = new ArrayAdapter<VideoResource>(this,
                 android.R.layout.simple_list_item_1, videoResourceList.getList());
+
+        // get most up to date list of video resources from network
+        task = new GetAvailableVideosTask(adapter, videoResourceList, progressBar);
+        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
         // ui elements
         ListView listView = (ListView) findViewById(R.id.remoteVideoListView);
@@ -58,5 +66,10 @@ public class ConsumerActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
     }
 }
