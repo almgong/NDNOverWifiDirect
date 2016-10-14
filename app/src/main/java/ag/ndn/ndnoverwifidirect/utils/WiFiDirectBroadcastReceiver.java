@@ -34,6 +34,7 @@ import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.List;
 
+import ag.ndn.ndnoverwifidirect.ConnectActivity;
 import ag.ndn.ndnoverwifidirect.callback.RegisterOnData;
 import ag.ndn.ndnoverwifidirect.callback.RegisterOnInterest;
 import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
@@ -116,7 +117,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                     @Override
                     public void onPeersAvailable(WifiP2pDeviceList peers) {
                         Log.d(TAG,
-                                String.format("woo peers available: %d", peers.getDeviceList().size()));
+                                String.format("Peers available: %d", peers.getDeviceList().size()));
 
                         PeerList.resetPeerList();   // todo need to do extra processing to unregister faces
                         int id = 0;
@@ -212,9 +213,6 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                             Log.d(TAG, "I am the group owner");
                             isGroupOwner = true;
 
-                            // for testing
-                            //mController.addPrefixHandled("/ndn/wifid/big-buck-bunny");
-
                         } else if (info.groupFormed) {
                             // The other device acts as the client. In this case,
                             // you'll want to create a client thread that connects to the group
@@ -277,10 +275,10 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
         connect(activePeers.get(p.getId()));
     }
 
-    private void connect(WifiP2pDevice peerDevice) {
+    private void connect(final WifiP2pDevice peerDevice) {
 
         // config
-        WifiP2pConfig config = new WifiP2pConfig();
+        final WifiP2pConfig config = new WifiP2pConfig();
         config.deviceAddress = peerDevice.deviceAddress;
         config.wps.setup = WpsInfo.PBC;
 
@@ -289,7 +287,9 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
             @Override
             public void onSuccess() {
-                // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
+                Toast.makeText(mActivity, "Successfully connected to peer: " +
+                        peerDevice.deviceName, Toast.LENGTH_SHORT).show();
+                // logic goes to onReceive()
             }
 
             @Override

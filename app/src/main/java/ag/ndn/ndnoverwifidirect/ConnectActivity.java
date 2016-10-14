@@ -100,26 +100,23 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
         // when an item is clicked, this is ran
         Log.d(TAG, "onListFragmentInteraction() called");
 
-        Toast.makeText(this, "My IP address: " + IPAddress.getLocalIPAddress()
-                , Toast.LENGTH_SHORT).show();
-
         mReceiver.connectToPeer(peer);
-        Log.d(TAG, "Sending registration interest again on click");
-
-        Face mFace = new Face("localhost");
-        Name n = new Name("/ndn/wifid/register/" + WiFiDirectBroadcastReceiver.groupOwnerAddress + "/" +
-        WiFiDirectBroadcastReceiver.myAddress + "/" + System.currentTimeMillis());
-
-        Log.d(TAG, "manually (re)sending interest...");
-        // on data callback
-        OnData onDataCallback = new OnData() {
-            @Override
-            public void onData(Interest interest, Data data) {
-                (new RegisterOnData()).doJob(interest, data);
-            }
-        };
-        Interest interest = new Interest(n);
-        interest.setMustBeFresh(true);
-        mController.sendInterest(interest, mFace, onDataCallback);
+//        Log.d(TAG, "Sending registration interest again on click");
+//
+//        Face mFace = new Face("localhost");
+//        Name n = new Name("/ndn/wifid/register/" + WiFiDirectBroadcastReceiver.groupOwnerAddress + "/" +
+//        WiFiDirectBroadcastReceiver.myAddress + "/" + System.currentTimeMillis());
+//
+//        Log.d(TAG, "manually (re)sending interest...");
+//        // on data callback
+//        OnData onDataCallback = new OnData() {
+//            @Override
+//            public void onData(Interest interest, Data data) {
+//                (new RegisterOnData()).doJob(interest, data);
+//            }
+//        };
+//        Interest interest = new Interest(n);
+//        interest.setMustBeFresh(true);
+//        mController.sendInterest(interest, mFace, onDataCallback);
     }
 }
