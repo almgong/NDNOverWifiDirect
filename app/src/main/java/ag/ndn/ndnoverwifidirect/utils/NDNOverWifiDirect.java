@@ -101,7 +101,7 @@ public class NDNOverWifiDirect extends NfdcHelper {
     }
 
     /**
-     * Retrieve a registered/logged Face instance given its URI
+     * Retrieve a registered/logged Face instance given its IP address.
      * @param ip the WifiDirect IP of the peer
      * @return a Face instance with the given URI, or null if there is none
      */

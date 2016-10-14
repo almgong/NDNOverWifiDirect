@@ -36,7 +36,9 @@ public class RegisterOnData implements NDNCallbackOnData {
             Face face = new Face(responseArray[i+2]);
             if(mController.logFace(responseArray[i+2], face)) {
                 // logged a new face, so send a registration interest to this NEW peer
+
                 //TODO to support 2+ peers
+                //mController. etc.
                 Log.d(TAG, "Should send a registration interest to: " + responseArray[i+2]);
             } else {
                 // else the face already exists, do nothing
