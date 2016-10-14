@@ -181,11 +181,11 @@ public class VideoActivity extends AppCompatActivity {
 
         // TODO lookup in Producer VideoResourceList for the correct local file name - actually ProducerActivity should be in charge of this...
 
-        String mediaPath = getExternalStorageDirectory() + "/" + Environment.DIRECTORY_MOVIES + "/big_buck_bunny.mp4";
+        //String mediaPath = getExternalStorageDirectory() + "/" + Environment.DIRECTORY_MOVIES + "/big_buck_bunny.mp4";
 
         try {
             //videoInputStream = new FileInputStream(mediaPath);
-            ras = new RandomAccessFile(mediaPath, "r");
+            ras = new RandomAccessFile(bundle.getString("videoUri"), "r");
         } catch (Exception e) {
             e.printStackTrace();
             Log.e(TAG, "Could not open video resource to share...");
