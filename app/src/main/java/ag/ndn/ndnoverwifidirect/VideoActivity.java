@@ -7,9 +7,14 @@ import android.os.Environment;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.DragEvent;
+import android.view.View;
 import android.widget.VideoView;
 
+import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
@@ -60,6 +65,9 @@ public class VideoActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video);
 
+        // UI
+        simpleExoPlayerView = (SimpleExoPlayerView) findViewById(R.id.producerExoPlayer);
+
         // get info passed from previous activity
         bundle = getIntent().getExtras();
         Log.d(TAG, "is local?: " + bundle.getBoolean("isLocal"));
@@ -67,7 +75,6 @@ public class VideoActivity extends AppCompatActivity {
 
         // get the simple exo video player
         player = new VideoPlayer(this).getPlayer();
-        //handler = VideoPlayer.handler;
 
         // source to which ExoPlayer should read from
         MediaSource source = null;
@@ -106,14 +113,17 @@ public class VideoActivity extends AppCompatActivity {
 
             // start getting media from network
             startGettingVideo(currentPrefix);
+            simpleExoPlayerView.setUseController(false);    // consumers use a different controller
+
+            // TODO bind the seekbar for consumers
+
+            player.setPlayWhenReady(true);
         }
 
         // prepare the player with the appropriate data source
         player.prepare(source);
-        //player.setPlayWhenReady(true);
 
         // bind exo player to view
-        simpleExoPlayerView = (SimpleExoPlayerView) findViewById(R.id.producerExoPlayer);
         simpleExoPlayerView.setPlayer(player);
     }
 

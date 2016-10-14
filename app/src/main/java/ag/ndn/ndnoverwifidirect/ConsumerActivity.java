@@ -40,15 +40,13 @@ public class ConsumerActivity extends AppCompatActivity {
         progressBar.setIndeterminate(true);
 
         // for list view; a list of remote video resources
-        //TODO need to be able to retrieve using mController the prefixes reachable
         VideoResourceList videoResourceList = GlobalLists.getConsumerVideoResourceList();
         videoResourceList.clear();
-
 
         ArrayAdapter<VideoResource> adapter = new ArrayAdapter<VideoResource>(this,
                 android.R.layout.simple_list_item_1, videoResourceList.getList());
 
-        // get most up to date list of video resources from network
+        // get most up to date list of video resources from network (UI updated by task)
         task = new GetAvailableVideosTask(adapter, videoResourceList, progressBar);
         task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
@@ -72,4 +70,7 @@ public class ConsumerActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
     }
+
+    @Override
+    protected void onResume() { super.onResume(); }
 }
