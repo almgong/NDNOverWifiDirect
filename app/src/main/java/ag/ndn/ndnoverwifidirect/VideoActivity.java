@@ -3,18 +3,12 @@ package ag.ndn.ndnoverwifidirect;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.DragEvent;
-import android.view.View;
 import android.widget.VideoView;
 
-import com.google.android.exoplayer2.ExoPlaybackException;
-import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
@@ -37,8 +31,6 @@ import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
 import ag.ndn.ndnoverwifidirect.videosharing.callback.GetVideoOnInterest;
 import ag.ndn.ndnoverwifidirect.videosharing.datasource.ChunkDataSourceFactory;
 import ag.ndn.ndnoverwifidirect.videosharing.task.GetVideoTask;
-
-import static android.os.Environment.getExternalStorageDirectory;
 
 public class VideoActivity extends AppCompatActivity {
 
@@ -113,7 +105,7 @@ public class VideoActivity extends AppCompatActivity {
 
             // start getting media from network
             startGettingVideo(currentPrefix);
-            simpleExoPlayerView.setUseController(false);    // consumers use a different controller
+            //simpleExoPlayerView.setUseController(false);    // consumers use a different controller
 
             // TODO bind the seekbar for consumers
 
@@ -189,12 +181,7 @@ public class VideoActivity extends AppCompatActivity {
         Log.d(TAG, "REGISTERING VIDEO PREFIX FOR SHARING...");
         Face mFace = new Face("localhost");
 
-        // TODO lookup in Producer VideoResourceList for the correct local file name - actually ProducerActivity should be in charge of this...
-
-        //String mediaPath = getExternalStorageDirectory() + "/" + Environment.DIRECTORY_MOVIES + "/big_buck_bunny.mp4";
-
         try {
-            //videoInputStream = new FileInputStream(mediaPath);
             ras = new RandomAccessFile(bundle.getString("videoUri"), "r");
         } catch (Exception e) {
             e.printStackTrace();
