@@ -13,6 +13,7 @@ import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
+import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -254,7 +255,6 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                                 registrationInterestTask = (SendInterestTask) mController.sendInterest(interest, mFace, onDataCallback);
 
                                 Log.d(TAG, "Registration Interest sent.");
-
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
@@ -287,8 +287,6 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
             @Override
             public void onSuccess() {
-                Toast.makeText(mActivity, "Successfully connected to peer: " +
-                        peerDevice.deviceName, Toast.LENGTH_SHORT).show();
                 // logic goes to onReceive()
             }
 
