@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.google.android.exoplayer2.SimpleExoPlayer;
@@ -42,7 +43,6 @@ public class VideoActivity extends AppCompatActivity {
 
     private SimpleExoPlayer player;
     private VideoPlayerBuffer videoPlayerBuffer = new VideoPlayerBuffer();
-    //private Handler handler;
 
     private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
 
@@ -62,8 +62,6 @@ public class VideoActivity extends AppCompatActivity {
 
         // get info passed from previous activity
         bundle = getIntent().getExtras();
-        Log.d(TAG, "is local?: " + bundle.getBoolean("isLocal"));
-        Log.d(TAG, "videoUri: " + bundle.getString("videoUri"));
 
         // get the simple exo video player
         player = new VideoPlayer(this).getPlayer();
@@ -82,7 +80,12 @@ public class VideoActivity extends AppCompatActivity {
 
                         @Override
                         public void onLoadError(IOException error) {
-                            Log.e(TAG, error.getMessage());
+
+                            if (error.getMessage() != null) {
+                                Log.e(TAG, error.getMessage());
+                            }
+
+                            Toast.makeText(VideoActivity.this, "Error loading media.", Toast.LENGTH_LONG).show();
                         }
                     });
 
@@ -100,6 +103,9 @@ public class VideoActivity extends AppCompatActivity {
                     if (error.getMessage() != null) {
                         Log.e(TAG, error.getMessage());
                     }
+
+                    Toast.makeText(VideoActivity.this, "Error loading media.", Toast.LENGTH_LONG).show();
+
                 }
             });
 
@@ -165,11 +171,9 @@ public class VideoActivity extends AppCompatActivity {
      * @param prefix the prefix to get video media from.
      */
     private void startGettingVideo(String prefix) {
-        getVideoTask = new GetVideoTask(videoPlayerBuffer);
+        getVideoTask = new GetVideoTask(videoPlayerBuffer, this);
         getVideoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, prefix);
         Log.d(TAG, "Started GetVideoTask...");
-
-        //player.setPlayWhenReady(true);
     }
 
     /**

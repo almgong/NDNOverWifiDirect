@@ -103,6 +103,6 @@ public class ChunkDataSource implements DataSource {
 
     @Override
     public void close() throws IOException {
-
+        videoPlayerBuffer.clearBuffer();
     }
 }
