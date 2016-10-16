@@ -25,6 +25,6 @@ public class NDNSanitizer {
          *
          */
         String sanitized = str.trim();
-        return sanitized.replaceAll("[_.\\s+]", "-");
+        return sanitized.replaceAll("[_.,\'\\s+]", "-");
     }
 }
