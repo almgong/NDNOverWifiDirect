@@ -1,8 +1,11 @@
 package ag.ndn.ndnoverwifidirect.videosharing.task;
 
+import android.app.Activity;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Log;
+import android.widget.Toast;
 
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
@@ -38,16 +41,21 @@ import static android.os.Environment.getExternalStorageDirectory;
 
 public class GetVideoTask extends AsyncTask<String, Void, Void> {
 
+    private final String TAG = "GetVideoTask";
+
     private boolean stop = false;       // stops probing network for desired video bytes
     private int sequenceNumber = 0;
 
     private VideoPlayerBuffer buffer;
+    private Context mActivity;
+
     private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
     private OnData onDataReceived;  // OnData callback when data is received
     private SendInterestTask currentSendInterestTask;
 
-    public GetVideoTask(VideoPlayerBuffer buffer) {
+    public GetVideoTask(VideoPlayerBuffer buffer, Context activity) {
         this.buffer = buffer;
+        this.mActivity = activity;
     }
 
     public void stop(boolean toStop) {
@@ -288,5 +296,10 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
 
             }
         }
+    }
+
+    @Override
+    protected void onPostExecute(Void v) {
+        Toast.makeText(mActivity, "Video sharing starting....", Toast.LENGTH_SHORT).show();
     }
 }
