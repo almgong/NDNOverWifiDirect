@@ -57,7 +57,7 @@ public class ProducerActivity extends AppCompatActivity {
             List<String> videoNames = new ArrayList<>();
             for (File f : videoDir.listFiles()) {
                 String name;
-                if ((name=f.getName()).endsWith(".mp4")) {
+                if ((name=f.getName()).endsWith(".mp4") || ((name=f.getName()).endsWith(".mp3"))) {
 
                     if (videoNameLocationMap.containsKey(name)) {
                         name += ( "-" + (++uniquefier));
