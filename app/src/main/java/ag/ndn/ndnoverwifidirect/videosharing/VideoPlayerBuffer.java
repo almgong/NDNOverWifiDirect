@@ -17,8 +17,8 @@ public class VideoPlayerBuffer {
 
     // finals (tuneable)
     public static final int MAX_ITEM_SIZE = 32000;      // in bytes
-    public static final int POLITENESS_DELAY = 500;     // ms to wait before accessing buffer again
-    private static final int MAX_CACHED_ITEMS = 15;
+    public static final int POLITENESS_DELAY = 200;     // ms to wait before accessing buffer again
+    private static final int MAX_CACHED_ITEMS = 30;
 
     private LinkedList<byte[]> buffer;
     private boolean eofReached = false;
@@ -57,12 +57,6 @@ public class VideoPlayerBuffer {
 
     public void notifyEofReached() {
         eofReached = true;
-    }
-
-    public boolean getEofReached() { return eofReached; }
-
-    public int getBufferSize() {
-        return buffer.size();
     }
 
     public boolean isFull() {
