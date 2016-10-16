@@ -32,14 +32,13 @@ public class RegisterOnData implements NDNCallbackOnData {
 
         // logic for adding peers that group owner knows about, but this devices may not
         for (int i = 0; i < numPeers; i++) {
-            Log.d(TAG, "Looking at peer: " + responseArray[i+2]);
             Face face = new Face(responseArray[i+2]);
             if(mController.logFace(responseArray[i+2], face)) {
-                // logged a new face, so send a registration interest to this NEW peer
 
-                //TODO to support 2+ peers
-                //mController. etc.
-                Log.d(TAG, "Should send a registration interest to: " + responseArray[i+2]);
+                // NOTE: lazy registration, don't spam registration interests
+                // to the other peers right now, leave it up to the upper level application
+                // to decide.
+                Log.d(TAG, "Logged peer: " + responseArray[i+2]);
             } else {
                 // else the face already exists, do nothing
                 Log.d(TAG, "Peer is already logged, or is this device, skipping...");

@@ -57,9 +57,6 @@ public class NDNOverWifiDirect extends NfdcHelper {
     // set of prefixes that the running application handles - everyone is assumed to handle /ndn/wifid/register
     private Set<String> prefixes = new HashSet<String>();
 
-    // set of prefixes (TODO temp) that other apps have said they handle
-    private Set<String> registeredPrefixes = new HashSet<>();
-
     // flag to denote that registration prefix (ubiquitous) has been set up already
     private static boolean registrationPrefixComplete = false;
 
@@ -197,18 +194,12 @@ public class NDNOverWifiDirect extends NfdcHelper {
         });
     }
 
-    // send interest, default OnData
-    // each sendInterest() method returns the async task, as they can be long living
-    public AsyncTask sendInterest(Interest interest, Face face) {
-        SendInterestTask task = new SendInterestTask(interest, face);
-        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        return task;
-    }
 
     // send interest with custom OnData
     public AsyncTask sendInterest(Interest interest, Face face, OnData onData) {
         SendInterestTask task = new SendInterestTask(interest, face, onData);
         task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR); // parallel handling of async tasks
+
         return task;
     }
 
@@ -216,11 +207,13 @@ public class NDNOverWifiDirect extends NfdcHelper {
         SendInterestTask task = new SendInterestTask(interest, face, onData);
         task.setProcessEventsTimer(processEventsTimer);
         task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR); // parallel handling of async tasks
+
         return task;
     }
 
     // uses TCP as transport protocol, creates face and registers RIB entry(ies)
-    // let NFD automatically destroy faces
+    // In the future, this function should support any transport protocol (i.e. allow
+    // users to directly specify the URI).
     public void createFace(String peerIp, String[] prefixesToRegister) {
 
         if (peerIp.equals(IPAddress.getLocalIPAddress())) {
@@ -275,13 +268,6 @@ public class NDNOverWifiDirect extends NfdcHelper {
         registerPrefixTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
         return registerPrefixTask;
-    }
-
-    public Set<String> getRegisteredPrefixes() {
-        // TODO -- either need to store it in this class, or use ribList() call
-        registeredPrefixes.add("/ndn/wifid/big-buck-bunny");
-
-        return registeredPrefixes;
     }
 
     private KeyChain buildTestKeyChain() throws net.named_data.jndn.security.SecurityException {
