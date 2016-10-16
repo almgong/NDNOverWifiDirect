@@ -111,13 +111,13 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
 
                     // there was no data in resp, meaning all data sent for resource
                     // looping stops here
-                    buffer.notifyEofReached(); // probably should be done a different way TODO maybe have a EOF byte[] added to buffer
-                    buffer.addToBuffer(new byte[0]);
+                    buffer.notifyEofReached(); // probably should be done a different way
+                    buffer.addToBuffer(VideoPlayerBuffer.EOF_MARKER);    //
                     Log.d(TAG, String.format("All data from %s has been processed from peer, or stop was set.", prefix));
 
                 } else if (payload[0] == VideoPlayer.DATA_FLAG) { // packet contains data
                     System.err.println("Took " + (System.currentTimeMillis()-start + " ms to get packet"));
-                    System.out.println("Size of entire payload is: " + payload.length);
+                    //System.out.println("Size of entire payload is: " + payload.length);
 
                     // parse custom header
                     byte[] dataToBuffer = Arrays.copyOfRange(payload, 1, payload.length);

@@ -18,6 +18,8 @@ public class VideoPlayerBuffer {
     // finals (tuneable)
     public static final int MAX_ITEM_SIZE = 32000;      // in bytes
     public static final int POLITENESS_DELAY = 200;     // ms to wait before accessing buffer again
+    public static final byte[] EOF_MARKER = new byte[0];// denotes EOF if found in videoplayerbuffer
+
     private static final int MAX_CACHED_ITEMS = 30;
 
     private LinkedList<byte[]> buffer;
