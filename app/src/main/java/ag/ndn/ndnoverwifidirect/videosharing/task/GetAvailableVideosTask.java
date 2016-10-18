@@ -33,7 +33,7 @@ import static android.R.attr.startOffset;
  * Created by allengong on 10/11/16.
  */
 
-public class GetAvailableVideosTask extends AsyncTask <Integer, Void, Void> {
+public class GetAvailableVideosTask extends AsyncTask <Integer, Void, Integer> {
 
     private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
     private OnData onData;
@@ -61,7 +61,7 @@ public class GetAvailableVideosTask extends AsyncTask <Integer, Void, Void> {
     }
 
     @Override
-    protected Void doInBackground(Integer... params) {
+    protected Integer doInBackground(Integer... params) {
 
         // init
         myIp = IPAddress.getLocalIPAddress();
@@ -129,9 +129,10 @@ public class GetAvailableVideosTask extends AsyncTask <Integer, Void, Void> {
             }
         } else {
             System.err.println("Could not find any video resources or IP null.");
+            return -1;
         }
 
-        return null;
+        return 1;
     }
 
     /**
@@ -141,7 +142,11 @@ public class GetAvailableVideosTask extends AsyncTask <Integer, Void, Void> {
      * @param v
      */
     @Override
-    protected void onPostExecute(Void v) {
+    protected void onPostExecute(Integer v) {
+
+        if (v == -1) {
+            // notify front end
+        }
 
         int i = 0;
         for (String s : prefixes) {

@@ -221,9 +221,6 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                             Log.d(TAG, "I am not the group owner, and my ip is: " +
                                     myAddress);
 
-                            Log.d(TAG, "handling dummy prefix at /ndn/wifid/megaman/8/22");
-                            mController.addPrefixHandled("/ndn/wifid/nongroup-owner-dummy-prefix");
-
                             try {
                                 // log initial faces, of group owner
                                 mController.logFace(groupOwnerAddress, new Face(groupOwnerAddress));
