@@ -13,11 +13,9 @@ import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
-import android.os.AsyncTask;
+import android.os.Message;
 import android.util.Log;
 import android.widget.Toast;
-
-import com.intel.jndn.management.types.FaceStatus;
 
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
@@ -26,14 +24,8 @@ import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
 import net.named_data.jndn.OnInterestCallback;
-import net.named_data.jndn.OnRegisterFailed;
-import net.named_data.jndn.security.KeyChain;
-import net.named_data.jndn.util.Blob;
 
-import java.io.IOException;
-import java.net.InetAddress;
 import java.util.HashMap;
-import java.util.List;
 
 import ag.ndn.ndnoverwifidirect.ConnectActivity;
 import ag.ndn.ndnoverwifidirect.callback.RegisterOnData;
@@ -41,10 +33,7 @@ import ag.ndn.ndnoverwifidirect.callback.RegisterOnInterest;
 import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
 import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.model.PeerList;
-import ag.ndn.ndnoverwifidirect.task.FaceCreateTask;
-import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
 import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
-import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
 /**
  * Created by allengong on 7/5/16.
@@ -239,8 +228,13 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                                     public void onData(Interest interest, Data data) {
                                         registrationInterestTask.setStopProcessing(true);
 
-                                        // do soemthing with the data
+                                        // do something with the data
                                         (new RegisterOnData()).doJob(interest, data);
+
+                                        // TODO TEMP this is temporary code for notification purposes
+                                        Message msg = new Message();
+                                        msg.what = ConnectActivity.CONNECT_SUCCESS;
+                                        ConnectActivity.mHandler.sendMessage(msg);
                                     }
                                 };
 

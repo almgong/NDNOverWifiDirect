@@ -6,6 +6,9 @@ import android.content.IntentFilter;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
@@ -33,15 +36,16 @@ import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
 public class ConnectActivity extends AppCompatActivity implements PeerFragment.OnListFragmentInteractionListener {
 
     private static final String TAG = "ConnectActivity";
+    public static final int CONNECT_SUCCESS = 0;      // marks successfuly connection
+    public static Handler mHandler;                   // android handler to trigger UI update
+
 
     private WifiP2pManager mManager;
     private Channel mChannel;
     private WiFiDirectBroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
 
-    private NDNOverWifiDirect mController;    // handler for ndn over wifidirect
-
-    private Face testFace = new Face("localhost");
+    private NDNOverWifiDirect mController;      // handler for ndn over wifidirect
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +62,9 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        mHandler = getHandler();
+
     }
 
     /* initialize manager and receiver for activity */
@@ -80,6 +87,7 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
     protected void onResume() {
         super.onResume();
         registerReceiver(mReceiver, mIntentFilter);
+        mHandler = getHandler();
     }
 
     /* unregister the broadcast receiver */
@@ -87,6 +95,19 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
     protected void onPause() {
         super.onPause();
         unregisterReceiver(mReceiver);
+        mHandler = null;
+    }
+
+    // returns a handler for connection success
+    private Handler getHandler() {
+        return new Handler(Looper.getMainLooper()) {
+
+            public void handleMessage(Message msg) {
+                if (msg.what == CONNECT_SUCCESS) {
+                    Toast.makeText(ConnectActivity.this, "Successfully connected to group.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        };
     }
 
     @Override
@@ -98,7 +119,6 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
     @Override
     public void onListFragmentInteraction(Peer peer) {
         // when an item is clicked, this is ran
-        Log.d(TAG, "onListFragmentInteraction() called");
 
         mReceiver.connectToPeer(peer);
         Log.d(TAG, "Sending registration interest again on click");
@@ -113,6 +133,11 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
             @Override
             public void onData(Interest interest, Data data) {
                 (new RegisterOnData()).doJob(interest, data);
+
+                // TODO TEMP this is temporary code for notification purposes
+                Message msg = new Message();
+                msg.what = CONNECT_SUCCESS;
+                mHandler.sendMessage(msg);
             }
         };
         Interest interest = new Interest(n);
