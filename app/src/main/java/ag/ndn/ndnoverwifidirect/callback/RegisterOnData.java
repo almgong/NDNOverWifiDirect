@@ -39,6 +39,10 @@ public class RegisterOnData implements NDNCallbackOnData {
                 // to the other peers right now, leave it up to the upper level application
                 // to decide.
                 Log.d(TAG, "Logged peer: " + responseArray[i+2]);
+
+                // create the face and register the registration prefix
+                String[] registrationPrefix = {"/ndn/wifid/register" + "/" + responseArray[i+2]};
+                mController.createFace(responseArray[i+2], registrationPrefix);
             } else {
                 // else the face already exists, do nothing
                 Log.d(TAG, "Peer is already logged, or is this device, skipping...");
