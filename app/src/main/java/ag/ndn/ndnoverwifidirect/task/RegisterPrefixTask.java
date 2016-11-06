@@ -67,7 +67,7 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
             ForwardingFlags flags = new ForwardingFlags();
             flags.setChildInherit(true);
 
-            mFace.registerPrefix(new Name(this.prefixToRegister),
+           long prefixId = mFace.registerPrefix(new Name(this.prefixToRegister),
                     this.onInterestCallback,
                     new OnRegisterFailed() {
                         @Override
@@ -87,6 +87,12 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
                 mFace.processEvents();
                 Thread.sleep(processEventsTimer);  // every x (e.g. 1500) milliseconds, modulate as needed
             }
+
+            mFace.removeRegisteredPrefix(prefixId);
+            mFace.shutdown();       // above does not work...
+
+            Log.d(TAG, "No longer handling: " + prefixToRegister);
+
 
         } catch (Exception e) {
             e.printStackTrace();

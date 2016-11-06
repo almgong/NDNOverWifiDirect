@@ -24,6 +24,7 @@ import ag.ndn.ndnoverwifidirect.callback.RegisterOnData;
 import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
 import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.utils.IPAddress;
+import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
 
@@ -80,6 +81,12 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
         mController = NDNOverWifiDirect.getInstance();
+
+
+        // TODO this is new
+        NDNController.getInstance().recordWifiP2pResources(mManager, mChannel, this);
+        Log.d(TAG, "new discoverpeers");
+        NDNController.getInstance().startDiscoveringPeers();
     }
 
     /* register the broadcast receiver with the intent values to be matched */
