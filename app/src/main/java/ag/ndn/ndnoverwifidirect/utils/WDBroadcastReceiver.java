@@ -15,6 +15,8 @@ import android.os.Message;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.intel.jndn.management.Nfdc;
+
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
@@ -140,6 +142,11 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                         // this device's address, which is now available
                         myAddress = IPAddress.getLocalIPAddress();
 
+                        if (!mController.getHasRegisteredOwnLocalhop()) {
+                            // do so now
+                            mController.registerOwnLocalhop();
+                            Log.d(TAG, "registerOwnLocalhop() called...");
+                        }
 
                         System.out.println("group owner address " + groupOwnerAddress);
 
@@ -160,10 +167,22 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                             // owner.
                             Log.d(TAG, "I am not the group owner, and my ip is: " +
                                     myAddress);
+
                             mController.setIsGroupOwner(false);
+
+                            // skip if already part of this group
+                            if (mController.getFaceIdForPeer(groupOwnerAddress) != -1) {
+                                return;
+                            }
 
                             // create UDP face towards GO
                             mController.createFace(groupOwnerAddress, NDNController.URI_UDP_PREFIX);
+
+                            // register the /localhop/wifidirect/<go-address> to this face
+                            String[] prefixes = new String[1];
+                            prefixes[0] = NDNController.PROBE_PREFIX + "/" + groupOwnerAddress;
+                            mController.ribRegisterPrefix(mController.getFaceIdForPeer(groupOwnerAddress),
+                                    prefixes);
                         }
                     }
                 });

@@ -3,9 +3,13 @@ package ag.ndn.ndnoverwifidirect.task;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import com.intel.jndn.management.Nfdc;
+
 import net.named_data.jndn.Name;
 
+import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
+import ag.ndn.ndnoverwifidirect.utils.NfdcHelper;
 
 /**
  * Same as RegisterPrefixTask, but for a specifc face id, rather than a Face instance.
@@ -33,7 +37,8 @@ public class RibRegisterPrefixTask extends AsyncTask<String, Void, Integer> {
     public Integer doInBackground(String... nothing) {
 
         try {
-            NDNOverWifiDirect.getInstance().ribRegisterPrefix(new Name(prefixToRegister),
+
+            NDNController.getInstance().getNfdcHelper().ribRegisterPrefix(new Name(prefixToRegister),
                     faceId, cost, childInherit, capture);
             Log.d(TAG, "registered rib prefix: " + prefixToRegister);
         } catch (Exception e) {

@@ -7,13 +7,25 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import net.named_data.jndn.Face;
+import net.named_data.jndn.Interest;
+import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
+import net.named_data.jndn.OnInterestCallback;
+import net.named_data.jndn.security.KeyChain;
+import net.named_data.jndn.security.identity.IdentityManager;
+import net.named_data.jndn.security.identity.MemoryIdentityStorage;
+import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 
+import ag.ndn.ndnoverwifidirect.callback.ProbeOnInterest;
 import ag.ndn.ndnoverwifidirect.task.DiscoverPeersTask;
+import ag.ndn.ndnoverwifidirect.task.FaceCreateTask;
 import ag.ndn.ndnoverwifidirect.task.ProbeTask;
+import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
+import ag.ndn.ndnoverwifidirect.task.RibRegisterPrefixTask;
 
 /**
  * New streamlined NDNOverWifiDirect controller. One instance exists
@@ -21,7 +33,7 @@ import ag.ndn.ndnoverwifidirect.task.ProbeTask;
  *
  * 1. No longer subclasses NfdcHelper class, instead uses delegation.
  * 2. GO's will keep track of Faces to peers (faceIds), while non-GO
- * simply have a single face to GO
+ * effectively have a single face to GO
  *
  * Created by allengong on 10/23/16.
  */
@@ -30,12 +42,14 @@ public class NDNController {
 
     public static final String URI_UDP_PREFIX = "udp://";
     public static final String URI_TCP_PREFIX = "tcp://";
+    public static final String PROBE_PREFIX = "/localhop/wifidirect";   // prefix used in probe handling
 
     private static final String TAG = "NDNController";
 
     // singleton
     private static NDNController mController = null;
 
+    // internal delegated Nfdc handle
     private static NfdcHelper nfdcHelper;
 
     // WiFi Direct related resources
@@ -46,15 +60,17 @@ public class NDNController {
     // shared members (GO and Non-GO)
     private DiscoverPeersTask discoverPeersTask = null;
     private ProbeTask probeTask = null;
-    private boolean isGroupOwner;           // set in broadcast receiver
-    private static Face mFace;              // main face pointing to localhost for registering prefixes, etc.
+    private boolean hasRegisteredOwnLocalhop = false;
+    private boolean isGroupOwner = false;   // set in broadcast receiver, defaulted to false, used primarily in ProbeOnInterest
+
+    private final Face mFace = new Face("localhost"); // single face instance at localhost, not to be used outside of this class
+
+    private HashMap<String, Set<String>> peersPrefixMap = new HashMap<>(); // { peerIp:{data prefix names},... }
+    private HashMap<String, Integer> peersMap = new HashMap<>();    // { peerIp:faceId }
 
     // GO specific members
-    private HashMap<String, Integer> peersMap = new HashMap<>();    // { peerIp:faceId }
-    private HashMap<String, Set<String>> peersPrefixMap = new HashMap<>(); // { peerIp:{data prefix names} }
 
     // NON-GO specific members
-    private Face faceToGO;
 
 
     private NDNController() {}  // prevents outside instantiation
@@ -63,7 +79,6 @@ public class NDNController {
         if (mController == null) {
             nfdcHelper = new NfdcHelper();  // init
             mController = new NDNController();
-            mFace = new Face("localhost");
         }
 
         return mController;
@@ -72,9 +87,27 @@ public class NDNController {
 
     // shared methods
 
+    // returns faceId of face towards the given peer
+    // returns -1 if no mapping exists for this peer
+    public int getFaceIdForPeer(String peerIp) {
+        if (peersMap.containsKey(peerIp)) {
+            return peersMap.get(peerIp);
+        }
+
+        return -1;
+    }
+
+    public boolean getIsGroupOwner() {
+        return isGroupOwner;
+    }
+
+    public void setIsGroupOwner(boolean b) {
+        isGroupOwner = b;
+    }
+
     /**
      * Initializes the WifiP2p context, channel and manager, for use with discovering peers.
-     * This must be done before starting ConnectService.
+     * This must be done before starting DiscoverPeersTask.
      * @param wifiP2pManager
      * @param channel
      */
@@ -85,31 +118,57 @@ public class NDNController {
         this.wifiDirectContext = context;
     }
 
-    public void setIsGroupOwner(boolean b) {
-        this.isGroupOwner = b;
-    }
 
     /**
-     * creates a face using nfdchelper, with the given peerIp and protocol.
-     *
+     * Creates a face to the specified peer (IP), with the
+     * uriPrefix (e.g. tcp://)
      * @param peerIp
      * @param uriPrefix
      */
     public void createFace(String peerIp, String uriPrefix) {
+
+        if (peerIp.equals(IPAddress.getLocalIPAddress())) {
+            return; //never add yourself as a face
+        }
+
         try {
             if (!peersMap.containsKey(peerIp)) {
                 // need to create a new face for this peer
-                nfdcHelper.faceCreate(uriPrefix+peerIp);
-
-                // TODO create facecreate task and run it above will lead to network on main thread expcetion
+                FaceCreateTask task = new FaceCreateTask(peerIp, new String[0]);
+                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, uriPrefix+peerIp);
+            } else {
+                Log.d(TAG, "Face to " + peerIp + " already exists. Skipping createFace()");
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+
     public void ribRegisterPrefix(int faceId, String[] prefixes) {
-        // TODO create a new task that specifcially registers prefix to some face
+        if (peersMap.containsValue(faceId)) {
+            try {
+                for (String prefix : prefixes) {
+                    RibRegisterPrefixTask task = new RibRegisterPrefixTask(prefix, faceId,
+                            0, true, false);
+                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR); // no blocking of other async tasks
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return;
+            }
+        }
+    }
+
+
+    // enumerates all currently logged data prefixes, across all faces
+    public Set<String> getAllLoggedPrefixes() {
+        Set<String> prefixes = new HashSet<>();
+        for (String key : peersPrefixMap.keySet()) {
+            prefixes.addAll(peersPrefixMap.get(key));
+        }
+
+        return prefixes;
     }
 
     /**
@@ -137,7 +196,7 @@ public class NDNController {
      * Begins probing the network for data prefixes
      */
     public void startProbing() {
-        if (probeTask != null) {
+        if (probeTask == null) {
             probeTask = new ProbeTask();
             probeTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } else {
@@ -152,10 +211,56 @@ public class NDNController {
         }
     }
 
+    /**
+     * Whether or not /localhop/wifidirect/xxx.xxx.xxx.xxx has
+     * been registered. Here, the ip is specifically that of this device.
+     * @return
+     */
+    public boolean getHasRegisteredOwnLocalhop() {
+        return this.hasRegisteredOwnLocalhop;
+    }
+
+    public void registerOwnLocalhop() {
+        if (!hasRegisteredOwnLocalhop) {
+            this.hasRegisteredOwnLocalhop = true;
+
+            // register /localhop/wifidirect/<this-devices-ip> to localhost
+            registerPrefix(mFace, PROBE_PREFIX + "/" + IPAddress.getLocalIPAddress(), new OnInterestCallback() {
+                @Override
+                public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
+                    (new ProbeOnInterest()).doJob(prefix, interest, face, interestFilterId, filter);
+                }
+            }, true, 200);  // process event every 200 ms
+        }
+    }
+
     public NfdcHelper getNfdcHelper() {
         return nfdcHelper;
-    }   // I don't like this
+    }   // I don't like this// TODO not needed, can use Nfdc directly (all static methods)
 
+    // checks for peers, if new peers then broadcast will be sent for PEERS_CHANGED
+    // can be called as a one-off operation
+    public void discoverPeers() throws Exception {
+
+        if (wifiP2pManager == null || channel == null) {
+            Log.e(TAG, "Unable to discover peers, did you recordWifiP2pResources() yet?");
+            return;
+        }
+
+        wifiP2pManager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                // WIFI_P2P_PEERS_CHANGED_ACTION intent sent!!
+                Log.d(TAG, "Success on discovering peers");
+            }
+
+            @Override
+            public void onFailure(int reasonCode) {
+
+                Log.d(TAG, "Fail discover peers, reasoncode: " + reasonCode);
+            }
+        });
+    }
 
     // GO methods
 
@@ -179,39 +284,42 @@ public class NDNController {
 
     // Non-GO methods
 
-    public void setGroupOwnerFace(Face face) {
-        this.faceToGO = face;
-    }
 
-
-
+    // TODO
 
     // everything below here is for convenience, send interest, create face, register prefixes
 
-    public AsyncTask sendInterest() { return null; }
+    // registers a prefix to the given face (usually localhost)
+    public AsyncTask registerPrefix(Face face, String prefix, OnInterestCallback cb, boolean handleForever,
+                                    long repeatTimer) {
 
-    // checks for peers, if new peers then broadcast will be sent for PEERS_CHANGED
-    // will connect to up to 5 peers(?)
-    // can be called as a one-off op
-    public void discoverPeers() throws Exception {
+        RegisterPrefixTask task  = new RegisterPrefixTask(face, prefix, cb, handleForever);
+        task.setProcessEventsTimer(repeatTimer);
+        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
-        if (wifiP2pManager == null || channel == null) {
-            Log.e(TAG, "Unable to discover peers, did you recordWifiP2pResources() yet?");
-            return;
+        return task;
+    }
+
+    /** misc **/
+
+    private KeyChain buildTestKeyChain() throws net.named_data.jndn.security.SecurityException {
+        MemoryIdentityStorage identityStorage = new MemoryIdentityStorage();
+        MemoryPrivateKeyStorage privateKeyStorage = new MemoryPrivateKeyStorage();
+        IdentityManager identityManager = new IdentityManager(identityStorage, privateKeyStorage);
+        KeyChain keyChain = new KeyChain(identityManager);
+        try {
+            keyChain.getDefaultCertificateName();
+        } catch (net.named_data.jndn.security.SecurityException e) {
+            keyChain.createIdentity(new Name("/test/identity"));
+            keyChain.getIdentityManager().setDefaultIdentity(new Name("/test/identity"));
         }
+        return keyChain;
 
-        wifiP2pManager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                // WIFI_P2P_PEERS_CHANGED_ACTION intent sent!!
-                Log.d(TAG, "Success on discovering peers");
-            }
+    }
 
-            @Override
-            public void onFailure(int reasonCode) {
+    /* In the future, we should allow users to implement this method so they can provide their own keychain */
+    public KeyChain getKeyChain() throws net.named_data.jndn.security.SecurityException {
 
-                Log.d(TAG, "Fail discover peers, reasoncode: " + reasonCode);
-            }
-        });
+        return buildTestKeyChain();
     }
 }

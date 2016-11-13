@@ -22,7 +22,9 @@ import net.named_data.jndn.util.Blob;
 import java.io.IOException;
 import java.util.List;
 
+import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
+import ag.ndn.ndnoverwifidirect.utils.NfdcHelper;
 
 /**
  * Provides ability to register one or more prefixes to the specified face.
@@ -32,7 +34,7 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
 
     private final String TAG = "RegisterPrefixTask";
 
-    private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
+    private NDNController mController = NDNController.getInstance();
 
     private Face mFace;
     private OnInterestCallback onInterestCallback;
@@ -42,9 +44,9 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
 
     private long processEventsTimer = 500;  // by default, every half second, process events
 
-    public RegisterPrefixTask(Face f, String prefixes, OnInterestCallback cb, boolean forever) {
+    public RegisterPrefixTask(Face f, String prefix, OnInterestCallback cb, boolean forever) {
         this.mFace = f;
-        this.prefixToRegister = prefixes;
+        this.prefixToRegister = prefix;
         this.onInterestCallback = cb;
         this.handleForever = forever;
         this.mStopProcessing = false;   // default

@@ -87,6 +87,8 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
         NDNController.getInstance().recordWifiP2pResources(mManager, mChannel, this);
         Log.d(TAG, "new discoverpeers");
         NDNController.getInstance().startDiscoveringPeers();
+        NDNController.getInstance().startProbing();
+        System.err.println("Connectacvitivty startProbing called");
     }
 
     /* register the broadcast receiver with the intent values to be matched */

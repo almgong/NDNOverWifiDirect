@@ -2,6 +2,21 @@ package ag.ndn.ndnoverwifidirect.task;
 
 import android.os.AsyncTask;
 
+import com.intel.jndn.management.Nfdc;
+import com.intel.jndn.management.types.FibEntry;
+
+import net.named_data.jndn.Data;
+import net.named_data.jndn.Face;
+import net.named_data.jndn.Interest;
+import net.named_data.jndn.Name;
+import net.named_data.jndn.OnData;
+
+import java.util.List;
+
+import ag.ndn.ndnoverwifidirect.callback.ProbeOnData;
+import ag.ndn.ndnoverwifidirect.utils.IPAddress;
+import ag.ndn.ndnoverwifidirect.utils.NDNController;
+
 /**
  * Periodically probes registered peers for available
  * data prefixes.
@@ -14,27 +29,47 @@ public class ProbeTask extends AsyncTask<Void, Void, Void> {
     private static final int REPEAT_TIMER_MS = 5000;
     private boolean loop = true;
 
+    private Face mFace = null;
+    private NDNController mController = NDNController.getInstance();
+
     public void stop() {
         loop = true;
     }
 
     @Override
     protected Void doInBackground(Void... params) {
-        // TODO probe probe probe...
+
+        String myIp = IPAddress.getLocalIPAddress();
+
         while (loop) {
+            System.err.println("Probe for data prefixes...");
             try {
-
+                mFace = new Face("localhost"); // localhost face used to contact nfd, destroyed at end
                 // enumerate FIB entries
+                List<FibEntry> fibEntries = Nfdc.getFibList(mFace);
 
-                    // look only for the ones related to /localhop/wifidirect/xxx
-                    // exclude localhost bound faces
+                // look only for the ones related to /localhop/wifidirect/xxx
+                for (FibEntry entry : fibEntries) {
+                    String prefix = entry.getPrefix().toString();
+                    String[] prefixArr = prefix.split("/");
 
-                // for each face (or can create a face using ip in FIB name)
-                    // send out probe interest towards this face with /localhop/wifidirect/xxx/yourIp/probe?mustBeFresh=1
+                    if (prefix.startsWith(NDNController.PROBE_PREFIX) && !prefixArr[prefixArr.length-1].equals(myIp)) {
+                        System.out.println("someone else's localhop prefix found!");
+                        // send interest to this peer
+                        mFace.expressInterest(new Interest(new Name(prefix + "/" + myIp + "/probe")), new OnData() {
+                            @Override
+                            public void onData(Interest interest, Data data) {
+                                (new ProbeOnData()).doJob(interest, data);
+                            }
+                        });
+                    }
 
+                    System.out.println(entry.getPrefix().toString());
+                }
 
-                        // for each response, should then note the new data prefix(es)
+                //TODO exclude localhost bound faces????
 
+                mFace.shutdown();
                 Thread.sleep(REPEAT_TIMER_MS);  // wait a little before doing again
 
             } catch (Exception e) {

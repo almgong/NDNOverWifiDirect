@@ -23,6 +23,7 @@ public class DiscoverPeersTask extends AsyncTask<Void, Void, Void> {
 
         try {
             while (loop) {
+                System.err.println("Discover peers....");
                 NDNController.getInstance().discoverPeers();
                 Thread.sleep(REPEAT_TIMER_MS);
             }

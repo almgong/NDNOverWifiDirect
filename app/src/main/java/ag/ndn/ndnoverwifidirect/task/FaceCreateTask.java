@@ -5,6 +5,7 @@ import android.util.Log;
 
 import net.named_data.jndn.Name;
 
+import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
 /**
@@ -30,7 +31,8 @@ public class FaceCreateTask extends AsyncTask<String, Void, Integer> {
         try {
             System.out.println("-------- Inside face create task --------");
 
-            faceId = mController.faceCreate(faceUris[0]);
+            //faceId = mController.faceCreate(faceUris[0]);
+            faceId = NDNController.getInstance().getNfdcHelper().faceCreate(faceUris[0]);
 
             // register desired forwarding prefixes, e.g. the "/ndn/wifid/register" registration prefix
             for (String prefix : prefixesToRegister) {
@@ -47,7 +49,9 @@ public class FaceCreateTask extends AsyncTask<String, Void, Integer> {
         Log.d(TAG, "!!!Created face with face id: " + faceId);
         if (faceId != -1) {
             // if face creation successful, log it
-            mController.logPeerToFaceId(peerIp, faceId);
+            //mController.logPeerToFaceId(peerIp, faceId);
+
+            NDNController.getInstance().logPeer(peerIp, faceId);
         }
 
         System.out.println("---------- END face create task -----------");
