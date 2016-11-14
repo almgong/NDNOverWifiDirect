@@ -28,6 +28,7 @@ import net.named_data.jndn.OnInterestCallback;
 import java.util.HashMap;
 
 import ag.ndn.ndnoverwifidirect.ConnectActivity;
+import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
 import ag.ndn.ndnoverwifidirect.callback.NDNCallbackOnData;
 import ag.ndn.ndnoverwifidirect.callback.RegisterOnData;
 import ag.ndn.ndnoverwifidirect.callback.RegisterOnInterest;
@@ -175,14 +176,20 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                                 return;
                             }
 
-                            // create UDP face towards GO
-                            mController.createFace(groupOwnerAddress, NDNController.URI_UDP_PREFIX);
+                            // create a callback that will register the /localhop/wifidirect/<go-addr> prefix
+                            GenericCallback cb = new GenericCallback() {
+                                @Override
+                                public void doJob() {
+                                    Log.d(TAG, "registering " + NDNController.PROBE_PREFIX + "/" + groupOwnerAddress);
+                                    String[] prefixes = new String[1];
+                                    prefixes[0] = NDNController.PROBE_PREFIX + "/" + groupOwnerAddress;
+                                    mController.ribRegisterPrefix(mController.getFaceIdForPeer(groupOwnerAddress),
+                                            prefixes);
+                                }
+                            };
 
-                            // register the /localhop/wifidirect/<go-address> to this face
-                            String[] prefixes = new String[1];
-                            prefixes[0] = NDNController.PROBE_PREFIX + "/" + groupOwnerAddress;
-                            mController.ribRegisterPrefix(mController.getFaceIdForPeer(groupOwnerAddress),
-                                    prefixes);
+                            // create UDP face towards GO, with callback to register /localhop/... prefix
+                            mController.createFace(groupOwnerAddress, NDNController.URI_UDP_PREFIX, cb);
                         }
                     }
                 });

@@ -55,13 +55,17 @@ public class ProbeTask extends AsyncTask<Void, Void, Void> {
 
                     if (prefix.startsWith(NDNController.PROBE_PREFIX) && !prefixArr[prefixArr.length-1].equals(myIp)) {
                         System.out.println("someone else's localhop prefix found!");
+                        System.out.println(entry.getPrefix().toString());
+
                         // send interest to this peer
-                        mFace.expressInterest(new Interest(new Name(prefix + "/" + myIp + "/probe")), new OnData() {
+                        Interest interest = new Interest(new Name(prefix + "/" + myIp + "/probe"));
+                        interest.setMustBeFresh(true);
+                        mFace.expressInterest(interest, new OnData() {
                             @Override
                             public void onData(Interest interest, Data data) {
                                 (new ProbeOnData()).doJob(interest, data);
                             }
-                        });
+                        }); // no timeout handling
                     }
 
                     System.out.println(entry.getPrefix().toString());

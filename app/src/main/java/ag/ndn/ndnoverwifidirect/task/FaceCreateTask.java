@@ -5,6 +5,7 @@ import android.util.Log;
 
 import net.named_data.jndn.Name;
 
+import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
@@ -18,10 +19,15 @@ public class FaceCreateTask extends AsyncTask<String, Void, Integer> {
     private String peerIp;
     private String[] prefixesToRegister;
     private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
+    private GenericCallback callback = null;
 
     public FaceCreateTask(String peerIp, String[] prefixes) {
         this.peerIp = peerIp;
         this.prefixesToRegister = prefixes;
+    }
+
+    public void setCallback(GenericCallback callback) {
+        this.callback = callback;
     }
 
     @Override
@@ -52,6 +58,11 @@ public class FaceCreateTask extends AsyncTask<String, Void, Integer> {
             //mController.logPeerToFaceId(peerIp, faceId);
 
             NDNController.getInstance().logPeer(peerIp, faceId);
+
+            // invoke callback, if any
+            if (callback != null) {
+                callback.doJob();
+            }
         }
 
         System.out.println("---------- END face create task -----------");

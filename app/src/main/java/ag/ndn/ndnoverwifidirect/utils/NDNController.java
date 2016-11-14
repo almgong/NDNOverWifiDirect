@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
+import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
 import ag.ndn.ndnoverwifidirect.callback.ProbeOnInterest;
 import ag.ndn.ndnoverwifidirect.task.DiscoverPeersTask;
 import ag.ndn.ndnoverwifidirect.task.FaceCreateTask;
@@ -43,6 +44,7 @@ public class NDNController {
     public static final String URI_UDP_PREFIX = "udp://";
     public static final String URI_TCP_PREFIX = "tcp://";
     public static final String PROBE_PREFIX = "/localhop/wifidirect";   // prefix used in probe handling
+    public static final String DATA_PREFIX = "/ndn/wifidirect";
 
     private static final String TAG = "NDNController";
 
@@ -121,11 +123,15 @@ public class NDNController {
 
     /**
      * Creates a face to the specified peer (IP), with the
-     * uriPrefix (e.g. tcp://)
+     * uriPrefix (e.g. tcp://). Optional callback parameter
+     * for adding a callback function to be called after successful
+     * face creation. Passing in null for callback means no callback.
+     *
      * @param peerIp
      * @param uriPrefix
+     * @param callback An implementation of GenericCallback, or null.
      */
-    public void createFace(String peerIp, String uriPrefix) {
+    public void createFace(String peerIp, String uriPrefix, GenericCallback callback) {
 
         if (peerIp.equals(IPAddress.getLocalIPAddress())) {
             return; //never add yourself as a face
@@ -135,6 +141,11 @@ public class NDNController {
             if (!peersMap.containsKey(peerIp)) {
                 // need to create a new face for this peer
                 FaceCreateTask task = new FaceCreateTask(peerIp, new String[0]);
+
+                if (callback != null) {
+                    task.setCallback(callback);
+                }
+
                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, uriPrefix+peerIp);
             } else {
                 Log.d(TAG, "Face to " + peerIp + " already exists. Skipping createFace()");
@@ -162,6 +173,7 @@ public class NDNController {
 
 
     // enumerates all currently logged data prefixes, across all faces
+    // used in ProbeOnInterest
     public Set<String> getAllLoggedPrefixes() {
         Set<String> prefixes = new HashSet<>();
         for (String key : peersPrefixMap.keySet()) {
