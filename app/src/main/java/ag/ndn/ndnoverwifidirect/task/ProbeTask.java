@@ -1,6 +1,7 @@
 package ag.ndn.ndnoverwifidirect.task;
 
 import android.os.AsyncTask;
+import android.util.Log;
 
 import com.intel.jndn.management.Nfdc;
 import com.intel.jndn.management.types.FibEntry;
@@ -16,6 +17,9 @@ import java.util.List;
 import ag.ndn.ndnoverwifidirect.callback.ProbeOnData;
 import ag.ndn.ndnoverwifidirect.utils.IPAddress;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
+import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
+
+import static android.content.ContentValues.TAG;
 
 /**
  * Periodically probes registered peers for available
@@ -26,11 +30,13 @@ import ag.ndn.ndnoverwifidirect.utils.NDNController;
 
 public class ProbeTask extends AsyncTask<Void, Void, Void> {
 
+    private static final String TAG = "ProbeTask";
     private static final int REPEAT_TIMER_MS = 5000;
+
     private boolean loop = true;
 
-    private Face mFace = null;
     private NDNController mController = NDNController.getInstance();
+    private Face mFace = mController.getLocalHostFace();
 
     public void stop() {
         loop = true;
@@ -39,41 +45,39 @@ public class ProbeTask extends AsyncTask<Void, Void, Void> {
     @Override
     protected Void doInBackground(Void... params) {
 
-        String myIp = IPAddress.getLocalIPAddress();
-
         while (loop) {
-            System.err.println("Probe for data prefixes...");
             try {
-                mFace = new Face("localhost"); // localhost face used to contact nfd, destroyed at end
-                // enumerate FIB entries
-                List<FibEntry> fibEntries = Nfdc.getFibList(mFace);
 
-                // look only for the ones related to /localhop/wifidirect/xxx
-                for (FibEntry entry : fibEntries) {
-                    String prefix = entry.getPrefix().toString();
-                    String[] prefixArr = prefix.split("/");
+                if (WDBroadcastReceiver.myAddress == null) {
+                    Log.d(TAG, "Skip this iteration due to null WD ip.");
+                } else {
+                    // enumerate FIB entries
+                    List<FibEntry> fibEntries = Nfdc.getFibList(mFace);
 
-                    if (prefix.startsWith(NDNController.PROBE_PREFIX) && !prefixArr[prefixArr.length-1].equals(myIp)) {
-                        System.out.println("someone else's localhop prefix found!");
-                        System.out.println(entry.getPrefix().toString());
+                    // look only for the ones related to /localhop/wifidirect/xxx
+                    for (FibEntry entry : fibEntries) {
+                        String prefix = entry.getPrefix().toString();
+                        String[] prefixArr = prefix.split("/");
 
-                        // send interest to this peer
-                        Interest interest = new Interest(new Name(prefix + "/" + myIp + "/probe"));
-                        interest.setMustBeFresh(true);
-                        mFace.expressInterest(interest, new OnData() {
-                            @Override
-                            public void onData(Interest interest, Data data) {
-                                (new ProbeOnData()).doJob(interest, data);
-                            }
-                        }); // no timeout handling
+                        if (prefix.startsWith(NDNController.PROBE_PREFIX) && !prefixArr[prefixArr.length - 1].equals(WDBroadcastReceiver.myAddress)) {
+                            System.out.println("someone else's localhop prefix found!");
+                            System.out.println(entry.getPrefix().toString());
+
+                            // send interest to this peer
+                            System.err.println("Sending interest to: " + prefixArr[prefixArr.length - 1]);
+                            Interest interest = new Interest(new Name(prefix + "/" + WDBroadcastReceiver.myAddress + "/probe"));
+                            interest.setMustBeFresh(true);
+                            System.err.println("Sending interest: " + interest.getName().toString());
+                            mFace.expressInterest(interest, new OnData() {
+                                @Override
+                                public void onData(Interest interest, Data data) {
+                                    (new ProbeOnData()).doJob(interest, data);
+                                }
+                            }); // no timeout handling
+                        }
                     }
-
-                    System.out.println(entry.getPrefix().toString());
                 }
 
-                //TODO exclude localhost bound faces????
-
-                mFace.shutdown();
                 Thread.sleep(REPEAT_TIMER_MS);  // wait a little before doing again
 
             } catch (Exception e) {

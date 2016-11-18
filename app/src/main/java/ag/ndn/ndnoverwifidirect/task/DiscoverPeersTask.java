@@ -12,7 +12,7 @@ import ag.ndn.ndnoverwifidirect.utils.NDNController;
 
 public class DiscoverPeersTask extends AsyncTask<Void, Void, Void> {
 
-    private static final int REPEAT_TIMER_MS = 5000;   // when to check for peers again
+    private static final int REPEAT_TIMER_MS = 10000;   // when to check for peers again
     private boolean loop = true;
 
     public void stop() {
@@ -23,7 +23,6 @@ public class DiscoverPeersTask extends AsyncTask<Void, Void, Void> {
 
         try {
             while (loop) {
-                System.err.println("Discover peers....");
                 NDNController.getInstance().discoverPeers();
                 Thread.sleep(REPEAT_TIMER_MS);
             }

@@ -26,6 +26,7 @@ import net.named_data.jndn.OnData;
 import net.named_data.jndn.OnInterestCallback;
 
 import java.util.HashMap;
+import java.util.HashSet;
 
 import ag.ndn.ndnoverwifidirect.ConnectActivity;
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
@@ -63,6 +64,8 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
 
     private NDNController mController;
 
+    private HashSet<String> connectedPeers;
+
     public WDBroadcastReceiver(WifiP2pManager manager, WifiP2pManager.Channel channel,
                                        Activity activity) { // was MyWifiActivity
         super();
@@ -71,6 +74,8 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
         this.mActivity = activity;
 
         this.mController = NDNController.getInstance();
+
+        this.connectedPeers = new HashSet<>();
     }
 
     @Override
@@ -110,7 +115,11 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                         // attempt to connect to all devices in range:
                         // TODO limit to just 5 later on
                         for (WifiP2pDevice device : peers.getDeviceList()) {
-                            connect(device);
+                            if (!connectedPeers.contains(device.deviceAddress)) {
+                                System.out.println("connecting to: " + device.deviceName);
+                                connect(device);
+                                connectedPeers.add(device.deviceAddress);
+                            }
                         }
                     }
                 });
@@ -189,7 +198,7 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                             };
 
                             // create UDP face towards GO, with callback to register /localhop/... prefix
-                            mController.createFace(groupOwnerAddress, NDNController.URI_UDP_PREFIX, cb);
+                            mController.createFace(groupOwnerAddress, NDNController.URI_TCP_PREFIX, cb);
                         }
                     }
                 });
@@ -221,6 +230,9 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
             public void onFailure(int reason) {
                 Toast.makeText(mActivity, "Connect failed for " + config.deviceAddress,
                         Toast.LENGTH_SHORT).show();
+
+                // remove log of this device from connectedPeers
+                connectedPeers.remove(config.deviceAddress);
             }
         });
     }

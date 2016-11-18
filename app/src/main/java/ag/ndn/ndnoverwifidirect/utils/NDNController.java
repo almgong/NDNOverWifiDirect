@@ -67,7 +67,7 @@ public class NDNController {
 
     private final Face mFace = new Face("localhost"); // single face instance at localhost, not to be used outside of this class
 
-    private HashMap<String, Set<String>> peersPrefixMap = new HashMap<>(); // { peerIp:{data prefix names},... }
+    //private HashMap<String, Set<String>> peersPrefixMap = new HashMap<>(); // { peerIp:{data prefix names},... }
     private HashMap<String, Integer> peersMap = new HashMap<>();    // { peerIp:faceId }
 
     // GO specific members
@@ -75,7 +75,15 @@ public class NDNController {
     // NON-GO specific members
 
 
-    private NDNController() {}  // prevents outside instantiation
+    private NDNController() {
+        try {
+            KeyChain kc = buildTestKeyChain();
+            mFace.setCommandSigningInfo(kc, kc.getDefaultCertificateName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }  // prevents outside instantiation
 
     public static NDNController getInstance() {
         if (mController == null) {
@@ -99,10 +107,34 @@ public class NDNController {
         return -1;
     }
 
+    /**
+     * Logs the peer with the corresponding faceId
+     * @param peerIp
+     * @param faceId
+     * @return true if new peer was added to the map, else false
+     */
+    public boolean logPeer(String peerIp, int faceId) {
+        if (peersMap.containsKey(peerIp)) {
+            return false;
+        }
+
+        peersMap.put(peerIp, faceId);
+
+        return true;
+    }
+
+    /**
+     * Returns whether this device is the group owner
+     * @return
+     */
     public boolean getIsGroupOwner() {
         return isGroupOwner;
     }
 
+    /**
+     * Sets whether this device is the group owner
+     * @param b
+     */
     public void setIsGroupOwner(boolean b) {
         isGroupOwner = b;
     }
@@ -156,6 +188,12 @@ public class NDNController {
     }
 
 
+    /**
+     * Registers the array of prefixes with the given Face, denoted by
+     * its face id.
+     * @param faceId
+     * @param prefixes
+     */
     public void ribRegisterPrefix(int faceId, String[] prefixes) {
         if (peersMap.containsValue(faceId)) {
             try {
@@ -174,14 +212,14 @@ public class NDNController {
 
     // enumerates all currently logged data prefixes, across all faces
     // used in ProbeOnInterest
-    public Set<String> getAllLoggedPrefixes() {
-        Set<String> prefixes = new HashSet<>();
-        for (String key : peersPrefixMap.keySet()) {
-            prefixes.addAll(peersPrefixMap.get(key));
-        }
-
-        return prefixes;
-    }
+//    public Set<String> getAllLoggedPrefixes() {
+//        Set<String> prefixes = new HashSet<>();
+//        for (String key : peersPrefixMap.keySet()) {
+//            prefixes.addAll(peersPrefixMap.get(key));
+//        }
+//
+//        return prefixes;
+//    }
 
     /**
      * Begins periodically looking for peers, and connecting
@@ -197,6 +235,9 @@ public class NDNController {
         }
     }
 
+    /**
+     * Stops discovering peers periodically.
+     */
     public void stopDiscoveringPeers() {
         if (discoverPeersTask != null) {
             discoverPeersTask.stop();
@@ -205,7 +246,7 @@ public class NDNController {
     }
 
     /**
-     * Begins probing the network for data prefixes
+     * Begins probing the network for data prefixes.
      */
     public void startProbing() {
         if (probeTask == null) {
@@ -216,6 +257,9 @@ public class NDNController {
         }
     }
 
+    /**
+     * Stops probing the network for data prefixes.
+     */
     public void stopProbing() {
         if (probeTask != null) {
             probeTask.stop();
@@ -242,7 +286,7 @@ public class NDNController {
                 public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
                     (new ProbeOnInterest()).doJob(prefix, interest, face, interestFilterId, filter);
                 }
-            }, true, 200);  // process event every 200 ms
+            }, true, 100);  // process event every 100 ms
         }
     }
 
@@ -274,24 +318,15 @@ public class NDNController {
         });
     }
 
-    // GO methods
-
     /**
-     * Logs the peer with the corresponding faceId
-     * @param peerIp
-     * @param faceId
-     * @return true if new peer was added to the map, else false
+     * Returns a face to localhost, to prevent creation/destruction of
+     * faces.
+     * @return
      */
-    public boolean logPeer(String peerIp, int faceId) {
-        if (peersMap.containsKey(peerIp)) {
-            return false;
-        }
-
-        peersMap.put(peerIp, faceId);
-
-        return true;
+    public Face getLocalHostFace() {
+        return mFace;
     }
-
+    // GO methods
 
 
     // Non-GO methods
@@ -299,7 +334,7 @@ public class NDNController {
 
     // TODO
 
-    // everything below here is for convenience, send interest, create face, register prefixes
+    // everything below here is for convenience (can be done manually otherwise)
 
     // registers a prefix to the given face (usually localhost)
     public AsyncTask registerPrefix(Face face, String prefix, OnInterestCallback cb, boolean handleForever,

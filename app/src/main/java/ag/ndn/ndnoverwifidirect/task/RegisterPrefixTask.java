@@ -61,9 +61,9 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
     @Override
     protected Integer doInBackground(String... params) {
         try {
-            // keychain business
-            KeyChain keyChain = mController.getKeyChain();
-            mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
+//            // keychain business
+//            KeyChain keyChain = mController.getKeyChain();
+//            mFace.setCommandSigningInfo(keyChain, keyChain.getDefaultCertificateName());
 
             // allow child inherit
             ForwardingFlags flags = new ForwardingFlags();
@@ -90,8 +90,9 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
                 Thread.sleep(processEventsTimer);  // every x (e.g. 1500) milliseconds, modulate as needed
             }
 
-            mFace.removeRegisteredPrefix(prefixId);
-            mFace.shutdown();       // above does not work...
+            // TODO might no longer be appropriate
+//            mFace.removeRegisteredPrefix(prefixId);
+//            mFace.shutdown();       // above does not work...
 
             Log.d(TAG, "No longer handling: " + prefixToRegister);
 

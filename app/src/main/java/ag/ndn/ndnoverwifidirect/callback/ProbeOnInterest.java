@@ -3,7 +3,10 @@ package ag.ndn.ndnoverwifidirect.callback;
 import android.util.Log;
 
 import com.intel.jndn.management.Nfdc;
-import com.intel.jndn.management.types.RibEntry;
+import com.intel.jndn.management.enums.FaceScope;
+import com.intel.jndn.management.types.FaceStatus;
+import com.intel.jndn.management.types.FibEntry;
+import com.intel.jndn.management.types.NextHopRecord;
 
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
@@ -18,24 +21,27 @@ import java.util.List;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 
 /**
+ * Handle OnInterest events for probe interests.
+ *
  * Created by allengong on 11/12/16.
  */
 public class ProbeOnInterest implements NDNCallBackOnInterest {
 
     private static final String TAG = "ProbeOnInterest";
 
-    private Face mFace = new Face("localhost"); // localhost face for communicating with NFD, destroyed after usage
     private NDNController mController = NDNController.getInstance();
+    private Face mFace = mController.getLocalHostFace(); // localhost face for communicating with NFD
+
 
     @Override
     public void doJob(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
-        Log.d(TAG, "Got an interest for: " + prefix.toString());
+        Log.d(TAG, "Got an interest for: " + interest.getName().toString());
 
         // /localhop/wifidirect/192.168.49.x/192.168.49.y/probe?mustBeFresh=1
-        String[] prefixArr = prefix.toString().split("/");
+        String[] prefixArr = interest.getName().toString().split("/");
 
         // validate
-        if (prefixArr.length != 5) {
+        if (prefixArr.length != 6) {
             Log.e(TAG, "Error with this interest, skipping...");
         }
 
@@ -44,7 +50,7 @@ public class ProbeOnInterest implements NDNCallBackOnInterest {
         // if not logged (a face created for this probing peer), should then create a face (mainly for GO)
         if (mController.getFaceIdForPeer(peerIp) == -1) {
 
-            mController.createFace(peerIp, NDNController.PROBE_PREFIX + "/" + peerIp, new GenericCallback() {
+            mController.createFace(peerIp, NDNController.URI_TCP_PREFIX, new GenericCallback() {
                 @Override
                 public void doJob() {
                     Log.d(TAG, "Registering localhop for: " + peerIp);
@@ -63,23 +69,44 @@ public class ProbeOnInterest implements NDNCallBackOnInterest {
             String response = "";
             int num = 0;
 
-            if (mController.getIsGroupOwner()) {
-                prefixesToReturn.addAll(mController.getAllLoggedPrefixes());    // avoid consulting NFD
-                num = mController.getAllLoggedPrefixes().size();
-            } else {
-                // need to consult NFD and find the data prefixes
-                List<RibEntry> ribEntries = Nfdc.getRouteList(mFace);
+            // consult NFD to get all entries in FIB
+            List<FibEntry> fibEntries = Nfdc.getFibList(mFace);
 
-                for (RibEntry ribEntry : ribEntries) {
-                    String entryName = ribEntry.getName().toString();
-                    if (entryName.startsWith(NDNController.DATA_PREFIX)) {
-                        // TODO also need to check it was created at localhost
-                        // see issue #18 on git, if the answer is yes, we can
-                        // simply avoid NFD communication and grab from prefixMap
-                        response += ribEntry.getName().toString();
+
+            if (mController.getIsGroupOwner()) {
+                // if GO, return all data prefixes
+                for (FibEntry fibEntry : fibEntries) {
+                    if (fibEntry.getPrefix().toString().startsWith(NDNController.DATA_PREFIX)) {
+                        prefixesToReturn.add(fibEntry.getPrefix().toString());
                         num++;
                     }
+                }
+            } else {
+                // enumerate local faces
+                List<FaceStatus> faceStatuses = Nfdc.getFaceList(mFace);
+                HashSet<Integer> localFaceIds = new HashSet<>();
+                for (FaceStatus faceStatus : faceStatuses) {
+                    if (faceStatus.getFaceScope().toInteger() == FaceScope.LOCAL.toInteger()) {
+                        localFaceIds.add(faceStatus.getFaceId());
+                    }
+                }
+                faceStatuses = null;    // gc
 
+                // return only those prefixes that can be handled locally
+                for (FibEntry fibEntry : fibEntries) {
+                    if (fibEntry.getPrefix().toString().startsWith(NDNController.DATA_PREFIX)) {
+
+                        // added constraint that the prefix can be served from this device (e.g.
+                        // by an upper layer application)
+                        List<NextHopRecord> nextHopRecords = fibEntry.getNextHopRecords();
+                        for (NextHopRecord nextHopRecord : nextHopRecords) {
+                            if (localFaceIds.contains(nextHopRecord.getFaceId())) {
+                                prefixesToReturn.add(fibEntry.getPrefix().toString());
+                                num++;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -91,6 +118,7 @@ public class ProbeOnInterest implements NDNCallBackOnInterest {
                 response += (pre + "\n");
             }
 
+            System.err.println("My response is: " + response);
             Blob payload = new Blob(num + "\n" + response);
             data.setContent(payload);
 
@@ -98,8 +126,6 @@ public class ProbeOnInterest implements NDNCallBackOnInterest {
             Log.d(TAG, "Responded to: " + prefix.toUri());
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            mFace.shutdown();
         }
     }
 }

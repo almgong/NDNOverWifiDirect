@@ -16,8 +16,10 @@ import android.widget.Toast;
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
+import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
+import net.named_data.jndn.OnInterestCallback;
 import net.named_data.jndn.security.KeyChain;
 
 import ag.ndn.ndnoverwifidirect.callback.RegisterOnData;
@@ -26,6 +28,7 @@ import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.utils.IPAddress;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
+import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
 import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
 
 /**
@@ -43,7 +46,8 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
 
     private WifiP2pManager mManager;
     private Channel mChannel;
-    private WiFiDirectBroadcastReceiver mReceiver;
+    //private WiFiDirectBroadcastReceiver mReceiver;
+    private WDBroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
 
     private NDNOverWifiDirect mController;      // handler for ndn over wifidirect
@@ -58,8 +62,8 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
 
         Log.d(TAG, "Discovering peers...");
         try {
-            mController.initialize();   // initializes this device for NDNOverWifid readiness
-            mController.discoverPeers(mManager, mChannel);
+            //mController.initialize();   // initializes this device for NDNOverWifid readiness
+            //mController.discoverPeers(mManager, mChannel);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -72,7 +76,8 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
     private void initWifiP2p() {
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
-        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
+        //mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
+        mReceiver = new WDBroadcastReceiver(mManager, mChannel, this);
 
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
@@ -80,7 +85,7 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-        mController = NDNOverWifiDirect.getInstance();
+        //mController = NDNOverWifiDirect.getInstance();
 
 
         // TODO this is new
@@ -89,6 +94,21 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
         NDNController.getInstance().startDiscoveringPeers();
         NDNController.getInstance().startProbing();
         System.err.println("Connectacvitivty startProbing called");
+
+        // temp- model an upper layer app
+        try {
+            KeyChain kc = NDNOverWifiDirect.getInstance().getKeyChain();
+            Face temp = new Face("localhost");
+            temp.setCommandSigningInfo(kc, kc.getDefaultCertificateName());
+            NDNController.getInstance().registerPrefix(temp, "/ndn/wifidirect/data1", new OnInterestCallback() {
+                @Override
+                public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
+                    System.err.println("Got data for dummy prefix: " + prefix.toString());
+                }
+            }, true, 200);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /* register the broadcast receiver with the intent values to be matched */
@@ -129,7 +149,7 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
     public void onListFragmentInteraction(Peer peer) {
         // when an item is clicked, this is ran
 
-        mReceiver.connectToPeer(peer);
+        //mReceiver.connectToPeer(peer);
         Log.d(TAG, "Sending registration interest again on click");
 
         Face mFace = new Face("localhost");
@@ -151,6 +171,6 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
         };
         Interest interest = new Interest(n);
         interest.setMustBeFresh(true);
-        mController.sendInterest(interest, mFace, onDataCallback);
+        //mController.sendInterest(interest, mFace, onDataCallback);
     }
 }
