@@ -94,21 +94,6 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
         NDNController.getInstance().startDiscoveringPeers();
         NDNController.getInstance().startProbing();
         System.err.println("Connectacvitivty startProbing called");
-
-        // temp- model an upper layer app
-        try {
-            KeyChain kc = NDNOverWifiDirect.getInstance().getKeyChain();
-            Face temp = new Face("localhost");
-            temp.setCommandSigningInfo(kc, kc.getDefaultCertificateName());
-            NDNController.getInstance().registerPrefix(temp, "/ndn/wifidirect/data1", new OnInterestCallback() {
-                @Override
-                public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
-                    System.err.println("Got data for dummy prefix: " + prefix.toString());
-                }
-            }, true, 200);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     /* register the broadcast receiver with the intent values to be matched */

@@ -1,7 +1,6 @@
 package ag.ndn.ndnoverwifidirect.utils;
 
 import android.content.Context;
-import android.content.Intent;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -17,8 +16,6 @@ import net.named_data.jndn.security.identity.MemoryIdentityStorage;
 import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
 import ag.ndn.ndnoverwifidirect.callback.ProbeOnInterest;
@@ -195,9 +192,11 @@ public class NDNController {
      * @param prefixes
      */
     public void ribRegisterPrefix(int faceId, String[] prefixes) {
+        Log.d(TAG, "ribRegisterPrefix called with: " + faceId + " and " + prefixes.length + " prefixes");
         if (peersMap.containsValue(faceId)) {
             try {
                 for (String prefix : prefixes) {
+                    Log.d(TAG, "actually creating the task and running it now!!!@@@@@@" + prefix);
                     RibRegisterPrefixTask task = new RibRegisterPrefixTask(prefix, faceId,
                             0, true, false);
                     task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR); // no blocking of other async tasks
@@ -208,18 +207,6 @@ public class NDNController {
             }
         }
     }
-
-
-    // enumerates all currently logged data prefixes, across all faces
-    // used in ProbeOnInterest
-//    public Set<String> getAllLoggedPrefixes() {
-//        Set<String> prefixes = new HashSet<>();
-//        for (String key : peersPrefixMap.keySet()) {
-//            prefixes.addAll(peersPrefixMap.get(key));
-//        }
-//
-//        return prefixes;
-//    }
 
     /**
      * Begins periodically looking for peers, and connecting

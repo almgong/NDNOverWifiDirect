@@ -3,6 +3,10 @@ package ag.ndn.ndnoverwifidirect.task;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import com.intel.jndn.management.ManagementException;
+import com.intel.jndn.management.Nfdc;
+
+import net.named_data.jndn.Face;
 import net.named_data.jndn.Name;
 
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
@@ -18,7 +22,7 @@ public class FaceCreateTask extends AsyncTask<String, Void, Integer> {
     private final String TAG = "FaceCreateTask";
     private String peerIp;
     private String[] prefixesToRegister;
-    private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
+    private NDNController mController = NDNController.getInstance();
     private GenericCallback callback = null;
 
     public FaceCreateTask(String peerIp, String[] prefixes) {
@@ -38,26 +42,24 @@ public class FaceCreateTask extends AsyncTask<String, Void, Integer> {
             System.out.println("-------- Inside face create task --------");
 
             //faceId = mController.faceCreate(faceUris[0]);
-            faceId = NDNController.getInstance().getNfdcHelper().faceCreate(faceUris[0]);
+            faceId = mController.getNfdcHelper().faceCreate(faceUris[0]);
 
-            // register desired forwarding prefixes, e.g. the "/ndn/wifid/register" registration prefix
-            for (String prefix : prefixesToRegister) {
-                Log.d(TAG, "registering prefix: " + prefix);
-                mController.ribRegisterPrefix(new Name(prefix), faceId, 0, true, false);
-            }
+            // piggyback registering desired prefixes -- deprecated, supply a callback instead
+            //mController.ribRegisterPrefix(faceId, prefixesToRegister);
 
             System.out.println("Successfully registered " + prefixesToRegister.length + " prefixes");
 
+        } catch (ManagementException me) {
+            Log.e(TAG, me.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
         }
 
         Log.d(TAG, "!!!Created face with face id: " + faceId);
         if (faceId != -1) {
             // if face creation successful, log it
-            //mController.logPeerToFaceId(peerIp, faceId);
 
-            NDNController.getInstance().logPeer(peerIp, faceId);
+            mController.logPeer(peerIp, faceId);
 
             // invoke callback, if any
             if (callback != null) {

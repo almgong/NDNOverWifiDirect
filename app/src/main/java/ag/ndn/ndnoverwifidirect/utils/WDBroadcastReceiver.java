@@ -11,35 +11,13 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.os.Message;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.intel.jndn.management.Nfdc;
-
-import net.named_data.jndn.Data;
-import net.named_data.jndn.Face;
-import net.named_data.jndn.Interest;
-import net.named_data.jndn.InterestFilter;
-import net.named_data.jndn.Name;
-import net.named_data.jndn.OnData;
-import net.named_data.jndn.OnInterestCallback;
-
-import java.util.HashMap;
 import java.util.HashSet;
 
-import ag.ndn.ndnoverwifidirect.ConnectActivity;
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
-import ag.ndn.ndnoverwifidirect.callback.NDNCallbackOnData;
-import ag.ndn.ndnoverwifidirect.callback.RegisterOnData;
-import ag.ndn.ndnoverwifidirect.callback.RegisterOnInterest;
-import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
-import ag.ndn.ndnoverwifidirect.model.Peer;
-import ag.ndn.ndnoverwifidirect.model.PeerList;
-import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
 
-import static ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver.groupOwnerAddress;
-import static ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver.myAddress;
 import static android.content.ContentValues.TAG;
 
 /**
@@ -170,7 +148,6 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                             Log.d(TAG, "I am the group owner... do nothing.");
                             mController.setIsGroupOwner(true);
 
-
                         } else if (info.groupFormed) {
                             // The other device acts as the client. In this case,
                             // you'll want to create a client thread that connects to the group
@@ -235,5 +212,15 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                 connectedPeers.remove(config.deviceAddress);
             }
         });
+    }
+
+    /**
+     * Resets all persistent state accumulated through
+     * normal operation.
+     */
+    public void resetState() {
+        connectedPeers.clear();
+        myAddress = null;
+        groupOwnerAddress = null;
     }
 }

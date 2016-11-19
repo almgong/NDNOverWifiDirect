@@ -64,8 +64,7 @@ public class ProbeTask extends AsyncTask<Void, Void, Void> {
                             System.out.println(entry.getPrefix().toString());
 
                             // send interest to this peer
-                            System.err.println("Sending interest to: " + prefixArr[prefixArr.length - 1]);
-                            Interest interest = new Interest(new Name(prefix + "/" + WDBroadcastReceiver.myAddress + "/probe"));
+                            Interest interest = new Interest(new Name(prefix + "/" + WDBroadcastReceiver.myAddress + "/probe?" + System.currentTimeMillis()));
                             interest.setMustBeFresh(true);
                             System.err.println("Sending interest: " + interest.getName().toString());
                             mFace.expressInterest(interest, new OnData() {

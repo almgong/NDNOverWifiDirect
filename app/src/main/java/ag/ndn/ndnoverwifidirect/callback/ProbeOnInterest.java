@@ -72,7 +72,6 @@ public class ProbeOnInterest implements NDNCallBackOnInterest {
             // consult NFD to get all entries in FIB
             List<FibEntry> fibEntries = Nfdc.getFibList(mFace);
 
-
             if (mController.getIsGroupOwner()) {
                 // if GO, return all data prefixes
                 for (FibEntry fibEntry : fibEntries) {
@@ -111,19 +110,18 @@ public class ProbeOnInterest implements NDNCallBackOnInterest {
             }
 
             Data data = new Data();
+            data.setName(new Name(interest.getName().toUri()));
 
             // format payload, for now ignore hopcount as it is not clear whether
             // it is useful
             for (String pre : prefixesToReturn) {
-                response += (pre + "\n");
+                response += ("\n" + pre);
             }
 
-            System.err.println("My response is: " + response);
-            Blob payload = new Blob(num + "\n" + response);
+            Blob payload = new Blob(num + response); // num + ("\nprefix1\nprefix2...")
             data.setContent(payload);
 
             face.putData(data);
-            Log.d(TAG, "Responded to: " + prefix.toUri());
         } catch (Exception e) {
             e.printStackTrace();
         }
