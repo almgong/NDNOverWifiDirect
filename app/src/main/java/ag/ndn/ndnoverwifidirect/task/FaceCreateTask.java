@@ -8,6 +8,7 @@ import com.intel.jndn.management.Nfdc;
 
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Name;
+import net.named_data.jndn_xx.util.FaceUri;
 
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
@@ -42,12 +43,26 @@ public class FaceCreateTask extends AsyncTask<String, Void, Integer> {
             System.out.println("-------- Inside face create task --------");
 
             //faceId = mController.faceCreate(faceUris[0]);
-            faceId = mController.getNfdcHelper().faceCreate(faceUris[0]);
+            //faceId = mController.getNfdcHelper().faceCreate(faceUris[0]);
+            faceId = Nfdc.createFace(mController.getLocalHostFace(),
+                    new FaceUri(faceUris[0]).canonize().toString());
 
             // piggyback registering desired prefixes -- deprecated, supply a callback instead
             //mController.ribRegisterPrefix(faceId, prefixesToRegister);
 
             System.out.println("Successfully registered " + prefixesToRegister.length + " prefixes");
+
+            Log.d(TAG, "!!!Created face with face id: " + faceId);
+            if (faceId != -1) {
+                // if face creation successful, log it
+
+                mController.logPeer(peerIp, faceId);
+
+                // invoke callback, if any
+                if (callback != null) {
+                    callback.doJob();
+                }
+            }
 
         } catch (ManagementException me) {
             Log.e(TAG, me.getMessage());
@@ -55,17 +70,6 @@ public class FaceCreateTask extends AsyncTask<String, Void, Integer> {
             Log.e(TAG, e.getMessage());
         }
 
-        Log.d(TAG, "!!!Created face with face id: " + faceId);
-        if (faceId != -1) {
-            // if face creation successful, log it
-
-            mController.logPeer(peerIp, faceId);
-
-            // invoke callback, if any
-            if (callback != null) {
-                callback.doJob();
-            }
-        }
 
         System.out.println("---------- END face create task -----------");
 

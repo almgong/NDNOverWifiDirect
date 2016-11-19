@@ -84,7 +84,7 @@ public class NDNController {
 
     public static NDNController getInstance() {
         if (mController == null) {
-            nfdcHelper = new NfdcHelper();  // init
+            //nfdcHelper = new NfdcHelper();  // init
             mController = new NDNController();
         }
 
@@ -277,6 +277,11 @@ public class NDNController {
         }
     }
 
+    /**
+     * Directly use Nfdc instead, to avoid having an extra localhost face being created
+     * @return
+     */
+    @Deprecated
     public NfdcHelper getNfdcHelper() {
         return nfdcHelper;
     }   // I don't like this// TODO not needed, can use Nfdc directly (all static methods)
