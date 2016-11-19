@@ -49,10 +49,7 @@ public class ProbeOnData implements NDNCallbackOnData {
         String[] responseArr = data.getContent().toString().split("\n");
 
         // validation
-        if (responseArr.length < 2) {
-            Log.e(TAG, "Empty or invalid response.");
-            return;
-        } else if (peerFaceId == -1) {
+        if (peerFaceId == -1) {
             Log.e(TAG, "Undocumented peer.");
             return;
         }
