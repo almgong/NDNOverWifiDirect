@@ -1,9 +1,13 @@
 package ag.ndn.ndnoverwifidirect.videosharing.task;
 
 import android.os.AsyncTask;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ProgressBar;
+
+import com.intel.jndn.management.Nfdc;
+import com.intel.jndn.management.types.FibEntry;
 
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
@@ -15,13 +19,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import ag.ndn.ndnoverwifidirect.VideoActivity;
 import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
 import ag.ndn.ndnoverwifidirect.utils.IPAddress;
+import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
+import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
 import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResource;
 import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResourceList;
 
 import static android.R.attr.startOffset;
+import static android.content.ContentValues.TAG;
 
 /**
  * Asynchronous task that will send a re-registration
@@ -35,23 +43,10 @@ import static android.R.attr.startOffset;
 
 public class GetAvailableVideosTask extends AsyncTask <Integer, Void, Integer> {
 
-    private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
-    private OnData onData;
-    private Face mFace = new Face("localhost");
-    private SendInterestTask currTask;
-
     private List<String> prefixes = new ArrayList<>();
     private ArrayAdapter<VideoResource> adapter;
     private VideoResourceList videoResourceList;
     private ProgressBar progressBar;
-
-
-    private String myIp;
-    private String[] peers;
-    private int i;
-
-    private int processEventsTimer = 500;
-    private boolean loop = true;
 
     // prefixes is a list of NDN prefixes found by querying all peer
     public GetAvailableVideosTask(ArrayAdapter<VideoResource> adapter, VideoResourceList list, ProgressBar progressBar) {
@@ -63,72 +58,21 @@ public class GetAvailableVideosTask extends AsyncTask <Integer, Void, Integer> {
     @Override
     protected Integer doInBackground(Integer... params) {
 
-        // init
-        myIp = IPAddress.getLocalIPAddress();
-        peers = mController.enumerateLoggedFaces().toArray(new String[0]);
-        i = 0;
+        try {
+            // we are specifically looking for video data prefixes
+            String relevantPrefix = NDNController.DATA_PREFIX + VideoActivity.NDN_VIDEO_PREFIX;
 
-        // start the daisy chain
-        if (peers.length > 0 && myIp != null) {
+            List<FibEntry> fibEntries = Nfdc.getFibList(NDNController.getInstance().getLocalHostFace());
 
-            onData = new OnData() {
-                @Override
-                public void onData(Interest interest, Data data) {
-
-                    currTask.setStopProcessing(true);   // stop previous processing
-
-                    /* response format:
-                         <ARBITRARY MESSAGE>\n
-                         <NUMBER OF PEERS>
-                         <LIST OF PEER IPs\n...>
-                         <NUMBER OF PREFIXES YOU HANDLE>
-                         <LIST OF PREFIXES\n...>
-                     */
-
-                    String[] resp = data.getContent().toString().split("\n");
-
-                    // skip the arbitrary message
-                    int offset = 1;
-
-                    // skip peers list and num prefixes
-                    int numPeers = Integer.parseInt(resp[offset]);
-                    offset += (numPeers + 1 + 1);
-
-                    // rest of response is the list of prefixes
-                    for (int i = offset; i < resp.length; i++) {
-                        prefixes.add(resp[i]);
-                    }
-
-                    // re-associate peer with these prefixes
-                    mController.createFace(peers[i-1], prefixes.toArray(new String[0]));
-
-                    // now chain for next
-                    if (i < peers.length) {
-                        Interest nextInterest = new Interest(new Name("/ndn/wifid/register/" + peers[i++] + "/" + myIp + "/" + System.currentTimeMillis()));
-                        currTask = (SendInterestTask) mController.sendInterest(nextInterest, mFace,
-                                onData, processEventsTimer);
-                    } else {
-                        // we are done, do nothing
-                        loop = false;
-                    }
-                }
-
-            };
-
-            // send first interest
-            Interest interest = new Interest(new Name("/ndn/wifid/register/" + peers[i++] + "/" + myIp + "/" + System.currentTimeMillis()));
-            currTask = (SendInterestTask) mController.sendInterest(interest, mFace,
-                    onData, processEventsTimer);
-
-            while (loop) {
-                try {
-                    Thread.sleep(processEventsTimer);
-                } catch (Exception e) {
-                    e.printStackTrace();
+            for (FibEntry fibEntry : fibEntries) {
+                if (fibEntry.getPrefix().toString().startsWith(relevantPrefix)) {
+                    prefixes.add(fibEntry.getPrefix().toString());
                 }
             }
-        } else {
-            System.err.println("Could not find any video resources or IP null.");
+
+        } catch (Exception e) {
+            Log.e(TAG, "Something happened while looking up data prefixes");
+            e.printStackTrace();
             return -1;
         }
 
@@ -145,7 +89,7 @@ public class GetAvailableVideosTask extends AsyncTask <Integer, Void, Integer> {
     protected void onPostExecute(Integer v) {
 
         if (v == -1) {
-            // notify front end
+            // notify front end of error
         }
 
         int i = 0;

@@ -65,7 +65,7 @@ public class GetVideoOnInterest implements NDNCallBackOnInterest {
 
             // choose lesser of 2 (in case JNDN gets updated, etc.)
             // see http://www.lists.cs.ucla.edu/pipermail/ndn-interest/2015-August/000780.html
-            // for why we limit to half of the practical limit
+            // for why we limit to a fraction of the practical limit
             int limit = (face.getMaxNdnPacketSize()*95)/100;   // 95% of practical limit
             if (limit < VideoPlayerBuffer.MAX_ITEM_SIZE) {
                 size = limit-headerSize;
@@ -77,19 +77,12 @@ public class GetVideoOnInterest implements NDNCallBackOnInterest {
             long skipAmount = 0;
             if (sequenceNumber > 0) {
                 skipAmount = sequenceNumber*(size-headerSize);
-                //skipAmount = size-headerSize;
             }
-
-            //long skipped = -1;
-            //while(skipped != skipAmount) {
-             //   skipped = fis.skip((long) skipAmount);
-            //}
 
             ras.seek(skipAmount);       // seek to desired position
 
             // read bytes to temporary array (temp has length = max size already)
             Log.d(TAG, "Read from: " + sequenceNumber*(size-headerSize) + "-" + (skipAmount+temp.length));
-//            int bytesRead = fis.read(temp, 0, temp.length);
             int bytesRead = ras.read(temp);
             if (bytesRead == -1) {
                 dataBytes = new byte[1];
@@ -104,14 +97,7 @@ public class GetVideoOnInterest implements NDNCallBackOnInterest {
             e.printStackTrace();
             return;
         } finally {
-            if (ras != null) {
-                try {
 
-                    //fis.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
         Blob payload = new Blob(dataBytes);
