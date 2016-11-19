@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
+import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayer;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
@@ -34,6 +35,9 @@ import ag.ndn.ndnoverwifidirect.videosharing.datasource.ChunkDataSourceFactory;
 import ag.ndn.ndnoverwifidirect.videosharing.task.GetVideoTask;
 
 public class VideoActivity extends AppCompatActivity {
+
+    // meant to be between /ndn/wifidirect and /some-video-name
+    public static final String NDN_VIDEO_PREFIX = "/video";
 
     private static final String TAG = "VideoActivity";
 
@@ -44,7 +48,7 @@ public class VideoActivity extends AppCompatActivity {
     private SimpleExoPlayer player;
     private VideoPlayerBuffer videoPlayerBuffer = new VideoPlayerBuffer();
 
-    private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
+    private NDNController mController = NDNController.getInstance();
 
     // initialized dependent on whether you are a producer/consumer
     private GetVideoTask getVideoTask;
@@ -81,11 +85,11 @@ public class VideoActivity extends AppCompatActivity {
                         @Override
                         public void onLoadError(IOException error) {
 
-                            if (error.getMessage() != null) {
-                                Log.e(TAG, error.getMessage());
-                            }
+                        if (error.getMessage() != null) {
+                            Log.e(TAG, error.getMessage());
+                        }
 
-                            Toast.makeText(VideoActivity.this, "Error loading media.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(VideoActivity.this, "Error loading media.", Toast.LENGTH_LONG).show();
                         }
                     });
 
@@ -139,7 +143,6 @@ public class VideoActivity extends AppCompatActivity {
         if (bundle.getBoolean("isLocal")) {                     // producer
             // stop responding to interests towards this prefix
             pushVideoTask.setStopProcessing(true);
-            mController.removePrefixHandled(currentPrefix);
 
             // close input stream if it is open
             if (ras != null) {
@@ -161,6 +164,21 @@ public class VideoActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         player.release();
+
+        if (bundle.getBoolean("isLocal")) {
+            pushVideoTask.setStopProcessing(true);
+
+            // close input stream if it is open
+            if (ras != null) {
+                try {
+                    ras.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        } else {
+            getVideoTask.stop(true);
+        }
     }
 
     // helpers
@@ -183,7 +201,7 @@ public class VideoActivity extends AppCompatActivity {
      */
     private void registerVideoPrefix(String prefix) {
         Log.d(TAG, "REGISTERING VIDEO PREFIX FOR SHARING...");
-        Face mFace = new Face("localhost");
+        Face mFace = mController.getLocalHostFace();
 
         try {
             ras = new RandomAccessFile(bundle.getString("videoUri"), "r");

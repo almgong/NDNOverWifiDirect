@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.videosharing.model.GlobalLists;
 import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResource;
 import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResourceList;
@@ -107,7 +108,8 @@ public class ProducerActivity extends AppCompatActivity {
                 Intent intent = new Intent(ProducerActivity.this, VideoActivity.class);
                 intent.putExtra("videoUri", videoNameLocationMap.get(desiredVideo.getVideoName()));
                 intent.putExtra("isLocal", true);
-                intent.putExtra("prefix", "/ndn/wifid/" + NDNSanitizer.sanitizeName(desiredVideo.getVideoName()));
+                intent.putExtra("prefix", NDNController.DATA_PREFIX + VideoActivity.NDN_VIDEO_PREFIX +
+                        "/" + NDNSanitizer.sanitizeName(desiredVideo.getVideoName()));
                 startActivity(intent);
             }
         });
