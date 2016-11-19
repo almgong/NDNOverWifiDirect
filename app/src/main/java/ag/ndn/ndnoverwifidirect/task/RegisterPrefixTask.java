@@ -3,6 +3,8 @@ package ag.ndn.ndnoverwifidirect.task;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import com.intel.jndn.management.Nfdc;
+
 import net.named_data.jndn.Face;
 import net.named_data.jndn.ForwardingFlags;
 import net.named_data.jndn.Name;
@@ -23,8 +25,6 @@ import ag.ndn.ndnoverwifidirect.utils.NDNController;
 public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
 
     private final String TAG = "RegisterPrefixTask";
-
-    private NDNController mController = NDNController.getInstance();
 
     private Face mFace;
     private OnInterestCallback onInterestCallback;
@@ -93,7 +93,7 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
 
             Name prefix = new Name(prefixToRegister);
 
-           mFace.registerPrefix(prefix, onInterestCallback,
+           long prefixId = mFace.registerPrefix(prefix, onInterestCallback,
                     new OnRegisterFailed() {
                         @Override
                         public void onRegisterFailed(Name prefix) {
@@ -114,10 +114,8 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
                 Thread.sleep(processEventsTimer);  // every x (e.g. 1500) milliseconds, modulate as needed
             }
 
-            // TODO might no longer be appropriate
-//            mFace.removeRegisteredPrefix(prefixId);
-//            mFace.shutdown();       // above does not work...
-
+            // unregister the prefix, no longer handled if logic gets to here
+            Nfdc.unregister(NDNController.getInstance().getLocalHostFace(), prefix);
             Log.d(TAG, "No longer handling: " + prefixToRegister);
 
 
