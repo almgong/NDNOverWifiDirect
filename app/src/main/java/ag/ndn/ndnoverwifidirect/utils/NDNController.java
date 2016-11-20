@@ -255,6 +255,28 @@ public class NDNController {
     }
 
     /**
+     * Toggles the state of probing and disovering
+     * peers. Internally, this is equivalent to
+     * manually starting or stopping both tasks.
+     * Great for binding to, I don't know, a toggle
+     * button.
+     *
+     * @return true if both tasks are now running, false otherwise
+     */
+    public boolean toggleDiscoverAndProbe() {
+        if (probeTask == null) {
+            // we will treat this as meaning both are not active
+            startDiscoveringPeers();
+            startProbing();
+            return true;
+        } else {
+            stopDiscoveringPeers();
+            stopProbing();
+            return false;
+        }
+    }
+
+    /**
      * Whether or not /localhop/wifidirect/xxx.xxx.xxx.xxx has
      * been registered. Here, the ip is specifically that of this device.
      * @return
@@ -276,15 +298,6 @@ public class NDNController {
             }, true, 100);  // process event every 100 ms
         }
     }
-
-    /**
-     * Directly use Nfdc instead, to avoid having an extra localhost face being created
-     * @return
-     */
-    @Deprecated
-    public NfdcHelper getNfdcHelper() {
-        return nfdcHelper;
-    }   // I don't like this// TODO not needed, can use Nfdc directly (all static methods)
 
     // checks for peers, if new peers then broadcast will be sent for PEERS_CHANGED
     // can be called as a one-off operation
@@ -318,13 +331,6 @@ public class NDNController {
     public Face getLocalHostFace() {
         return mFace;
     }
-    // GO methods
-
-
-    // Non-GO methods
-
-
-    // TODO
 
     // everything below here is for convenience (can be done manually otherwise)
 

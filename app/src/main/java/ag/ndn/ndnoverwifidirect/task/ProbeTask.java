@@ -39,7 +39,7 @@ public class ProbeTask extends AsyncTask<Void, Void, Void> {
     private Face mFace = mController.getLocalHostFace();
 
     public void stop() {
-        loop = true;
+        loop = false;
     }
 
     @Override

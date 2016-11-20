@@ -32,7 +32,6 @@ public class ProbeOnData implements NDNCallbackOnData {
     public void doJob(Interest interest, Data data) {
         // interest name = /localhop/wifidirect/<toIp>/<fromIp>/probe%timestamp
         Log.d(TAG, "Got data for interest: " + interest.getName().toString());
-        Log.d(TAG, data.getContent().toString());
 
         String[] nameArr = interest.getName().toString().split("/");
         String peerIp = nameArr[nameArr.length-3];
