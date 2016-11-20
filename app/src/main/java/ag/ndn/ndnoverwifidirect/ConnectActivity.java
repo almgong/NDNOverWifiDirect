@@ -60,14 +60,6 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
         Log.d(TAG, "Init WifiP2P...");
         initWifiP2p();
 
-        Log.d(TAG, "Discovering peers...");
-        try {
-            //mController.initialize();   // initializes this device for NDNOverWifid readiness
-            //mController.discoverPeers(mManager, mChannel);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
         mHandler = getHandler();
 
     }
@@ -76,7 +68,6 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
     private void initWifiP2p() {
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
-        //mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
         mReceiver = new WDBroadcastReceiver(mManager, mChannel, this);
 
         mIntentFilter = new IntentFilter();
@@ -85,15 +76,16 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-        //mController = NDNOverWifiDirect.getInstance();
-
-
-        // TODO this is new
         NDNController.getInstance().recordWifiP2pResources(mManager, mChannel, this);
         Log.d(TAG, "new discoverpeers");
-        NDNController.getInstance().startDiscoveringPeers();
+        //NDNController.getInstance().startDiscoveringPeers();
+        try {
+            NDNController.getInstance().discoverPeers();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         NDNController.getInstance().startProbing();
-        System.err.println("Connectacvitivty startProbing called");
     }
 
     /* register the broadcast receiver with the intent values to be matched */
