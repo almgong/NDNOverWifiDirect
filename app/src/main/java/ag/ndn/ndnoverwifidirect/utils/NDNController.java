@@ -84,7 +84,6 @@ public class NDNController {
 
     public static NDNController getInstance() {
         if (mController == null) {
-            //nfdcHelper = new NfdcHelper();  // init
             mController = new NDNController();
         }
 
@@ -321,6 +320,8 @@ public class NDNController {
                 Log.d(TAG, "Fail discover peers, reasoncode: " + reasonCode);
             }
         });
+
+
     }
 
     /**

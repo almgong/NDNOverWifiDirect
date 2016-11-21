@@ -84,6 +84,8 @@ public class ProbeTask extends AsyncTask<Void, Void, Void> {
             }
         }
 
+        Log.d(TAG, "Probing task stopped.");
+
         return null;
     }
 }

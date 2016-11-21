@@ -17,4 +17,7 @@
     <string name="title_activity_producer">ProducerActivity</string>
     <string name="title_activity_consumer">ConsumerActivity</string>
     <string name="title_activity_landing">Landing</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

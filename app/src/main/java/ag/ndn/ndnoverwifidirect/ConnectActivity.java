@@ -1,35 +1,23 @@
 package ag.ndn.ndnoverwifidirect;
 
-import android.app.Fragment;
 import android.content.Context;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
 
-import net.named_data.jndn.Data;
-import net.named_data.jndn.Face;
-import net.named_data.jndn.Interest;
-import net.named_data.jndn.InterestFilter;
-import net.named_data.jndn.Name;
-import net.named_data.jndn.OnData;
-import net.named_data.jndn.OnInterestCallback;
-import net.named_data.jndn.security.KeyChain;
-
-import ag.ndn.ndnoverwifidirect.callback.RegisterOnData;
-import ag.ndn.ndnoverwifidirect.fragment.PeerFragment;
-import ag.ndn.ndnoverwifidirect.model.Peer;
-import ag.ndn.ndnoverwifidirect.utils.IPAddress;
+import ag.ndn.ndnoverwifidirect.fragment.ConnectFragment;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
-import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
 
 /**
  * Logic flow:
@@ -37,20 +25,20 @@ import ag.ndn.ndnoverwifidirect.utils.WiFiDirectBroadcastReceiver;
  * init() wifidirect and register this activity with it, attempt to discover peers, and allow
  * user to select via a list fragment, a peer to connect to.
  */
-public class ConnectActivity extends AppCompatActivity implements PeerFragment.OnListFragmentInteractionListener {
+public class ConnectActivity extends AppCompatActivity implements ConnectFragment.OnFragmentInteractionListener {
 
     private static final String TAG = "ConnectActivity";
     public static final int CONNECT_SUCCESS = 0;      // marks successfuly connection
     public static Handler mHandler;                   // android handler to trigger UI update
 
-
     private WifiP2pManager mManager;
     private Channel mChannel;
-    //private WiFiDirectBroadcastReceiver mReceiver;
     private WDBroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
 
-    private NDNOverWifiDirect mController;      // handler for ndn over wifidirect
+    public WDBroadcastReceiver getReceiver() {
+        return mReceiver;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +50,11 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
 
         mHandler = getHandler();
 
+        // tell fragment of our new receiver
+        System.err.println(mReceiver == null);
+        ConnectFragment connectFragment =
+                (ConnectFragment) getSupportFragmentManager().findFragmentById(R.id.connect_fragment);
+        connectFragment.setWDBReceiver(mReceiver);
     }
 
     /* initialize manager and receiver for activity */
@@ -77,15 +70,16 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
         NDNController.getInstance().recordWifiP2pResources(mManager, mChannel, this);
-        Log.d(TAG, "new discoverpeers");
-        //NDNController.getInstance().startDiscoveringPeers();
-        try {
-            NDNController.getInstance().discoverPeers();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
-        NDNController.getInstance().startProbing();
+        // logic moved to ConnectFragment
+//        Log.d(TAG, "new discoverpeers");
+//        try {
+//            NDNController.getInstance().discoverPeers();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//        NDNController.getInstance().startProbing();
     }
 
     /* register the broadcast receiver with the intent values to be matched */
@@ -123,31 +117,7 @@ public class ConnectActivity extends AppCompatActivity implements PeerFragment.O
 
     /* implement Fragment listener(s) to allow fragment communications */
     @Override
-    public void onListFragmentInteraction(Peer peer) {
-        // when an item is clicked, this is ran
-
-        //mReceiver.connectToPeer(peer);
-        Log.d(TAG, "Sending registration interest again on click");
-
-        Face mFace = new Face("localhost");
-        Name n = new Name("/ndn/wifid/register/" + WiFiDirectBroadcastReceiver.groupOwnerAddress + "/" +
-        WiFiDirectBroadcastReceiver.myAddress + "/" + System.currentTimeMillis());
-
-        Log.d(TAG, "manually (re)sending interest...");
-        // on data callback
-        OnData onDataCallback = new OnData() {
-            @Override
-            public void onData(Interest interest, Data data) {
-                (new RegisterOnData()).doJob(interest, data);
-
-                // TODO TEMP this is temporary code for notification purposes
-                Message msg = new Message();
-                msg.what = CONNECT_SUCCESS;
-                mHandler.sendMessage(msg);
-            }
-        };
-        Interest interest = new Interest(n);
-        interest.setMustBeFresh(true);
-        //mController.sendInterest(interest, mFace, onDataCallback);
+    public void onFragmentInteraction(Uri uri) {
+        Log.d(TAG, "Interaction with connectFragment");
     }
 }

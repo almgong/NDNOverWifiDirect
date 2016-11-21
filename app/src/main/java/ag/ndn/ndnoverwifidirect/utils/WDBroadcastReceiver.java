@@ -14,7 +14,9 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
 
@@ -43,6 +45,7 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
     private NDNController mController;
 
     private HashSet<String> connectedPeers;
+    private int maxPeers = 5;// max number of peers per group
 
     public WDBroadcastReceiver(WifiP2pManager manager, WifiP2pManager.Channel channel,
                                        Activity activity) { // was MyWifiActivity
@@ -54,6 +57,16 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
         this.mController = NDNController.getInstance();
 
         this.connectedPeers = new HashSet<>();
+    }
+
+    public List<String> getConnectedPeers() {
+        ArrayList<String> ret = new ArrayList<>(connectedPeers.size());
+
+        for (String peerMacAddr : connectedPeers) {
+            ret.add(peerMacAddr);
+        }
+
+        return ret;
     }
 
     @Override
@@ -90,13 +103,14 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                         Log.d(TAG,
                                 String.format("Peers available: %d", peers.getDeviceList().size()));
 
-                        // attempt to connect to all devices in range:
-                        // TODO limit to just 5 later on
+                        // TODO some diff algorithm to remove peers from list
+
+                        // attempt to connect to all devices in range up to the max:
                         for (WifiP2pDevice device : peers.getDeviceList()) {
-                            if (!connectedPeers.contains(device.deviceAddress)) {
-                                System.out.println("connecting to: " + device.deviceName);
+                            if (!connectedPeers.contains(device.deviceAddress) &&
+                                    connectedPeers.size() <= maxPeers) {
+
                                 connect(device);
-                                connectedPeers.add(device.deviceAddress);
                             }
                         }
                     }
@@ -201,6 +215,7 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
             public void onSuccess() {
                 // logic goes to onReceive()
                 Log.d(TAG, "Connect successful for: " + config.deviceAddress);
+                connectedPeers.add(config.deviceAddress);
             }
 
             @Override
