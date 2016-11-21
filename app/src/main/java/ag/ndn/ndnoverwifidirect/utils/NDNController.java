@@ -48,9 +48,6 @@ public class NDNController {
     // singleton
     private static NDNController mController = null;
 
-    // internal delegated Nfdc handle
-    private static NfdcHelper nfdcHelper;
-
     // WiFi Direct related resources
     private WifiP2pManager wifiP2pManager = null;
     private WifiP2pManager.Channel channel = null;
