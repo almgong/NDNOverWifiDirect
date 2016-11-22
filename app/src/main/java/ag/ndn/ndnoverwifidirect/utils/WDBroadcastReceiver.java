@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import ag.ndn.ndnoverwifidirect.ConnectActivity;
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
 
 import static android.content.ContentValues.TAG;
@@ -190,6 +191,8 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
 
                             // create UDP face towards GO, with callback to register /localhop/... prefix
                             mController.createFace(groupOwnerAddress, NDNController.URI_TCP_PREFIX, cb);
+
+                            (Toast.makeText(mActivity, "Successfully connected to group.", Toast.LENGTH_LONG)).show();
                         }
                     }
                 });

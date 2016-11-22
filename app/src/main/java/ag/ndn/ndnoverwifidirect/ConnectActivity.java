@@ -16,7 +16,6 @@ import android.widget.Toast;
 
 import ag.ndn.ndnoverwifidirect.fragment.ConnectFragment;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
-import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
 
 /**
@@ -36,6 +35,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
     private WDBroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
 
+    private Fragment mFragment;
+
     public WDBroadcastReceiver getReceiver() {
         return mReceiver;
     }
@@ -50,11 +51,10 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
 
         mHandler = getHandler();
 
-        // tell fragment of our new receiver
-        System.err.println(mReceiver == null);
-        ConnectFragment connectFragment =
-                (ConnectFragment) getSupportFragmentManager().findFragmentById(R.id.connect_fragment);
-        connectFragment.setWDBReceiver(mReceiver);
+        // restore fragment, if any
+        if (savedInstanceState != null) {
+            mFragment = getSupportFragmentManager().getFragment(savedInstanceState, "mFragment");
+        }
     }
 
     /* initialize manager and receiver for activity */
@@ -70,16 +70,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
         NDNController.getInstance().recordWifiP2pResources(mManager, mChannel, this);
-
-        // logic moved to ConnectFragment
-//        Log.d(TAG, "new discoverpeers");
-//        try {
-//            NDNController.getInstance().discoverPeers();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//
-//        NDNController.getInstance().startProbing();
     }
 
     /* register the broadcast receiver with the intent values to be matched */
@@ -96,6 +86,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
         super.onPause();
         unregisterReceiver(mReceiver);
         mHandler = null;
+
+        NDNController.getInstance().stopDiscoveringPeers();
     }
 
     // returns a handler for connection success
@@ -113,6 +105,15 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
     @Override
     protected void onDestroy() {
         super.onDestroy();
+    }
+
+    // fragment restoration
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        //Save the fragment's instance
+        //getSupportFragmentManager().putFragment(outState, "mFragment", mFragment);
     }
 
     /* implement Fragment listener(s) to allow fragment communications */

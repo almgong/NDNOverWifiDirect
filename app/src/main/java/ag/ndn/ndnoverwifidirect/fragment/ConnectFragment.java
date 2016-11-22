@@ -46,6 +46,16 @@ public class ConnectFragment extends Fragment {
     private WDBroadcastReceiver mReciever = null;
     private OnFragmentInteractionListener mListener;
 
+    // status of the switch button, 0 = off and 1 = on
+    private int switchStatus;
+
+    private final int SWITCH_STATUs_OFF = 0;
+    private final int SWITCH_STATUS_ON = 1;
+
+    // top level GUI components
+    private Switch aSwitch;
+    private TextView statusTextView;
+
     public ConnectFragment() {
         // Required empty public constructor
     }
@@ -57,15 +67,9 @@ public class ConnectFragment extends Fragment {
      *
      * @return A new instance of fragment ConnectFragment.
      */
-    // TODO: Rename and change types and number of parameters
     public static ConnectFragment newInstance() {
         ConnectFragment fragment = new ConnectFragment();
         return fragment;
-    }
-
-    public void setWDBReceiver(WDBroadcastReceiver receiver) {
-        System.err.println("setWDReceiver called!!!");
-        this.mReciever = receiver;
     }
 
     @Override
@@ -84,11 +88,12 @@ public class ConnectFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_connect, container, false);
 
         ListView listView = (ListView) view.findViewById(R.id.connectedPeersListView);
-        final TextView statusTextView = (TextView) view.findViewById(R.id.statusText);
-        Switch aSwitch = (Switch) view.findViewById(R.id.serviceSwitch);
+        statusTextView = (TextView) view.findViewById(R.id.statusText);
+        aSwitch = (Switch) view.findViewById(R.id.serviceSwitch);
         Button discoverPeersBtn = (Button) view.findViewById(R.id.discoverPeersBtn);
 
         aSwitch.setChecked(false);  // default OFF
+        switchStatus = SWITCH_STATUs_OFF;
 
         // for listview
         final ArrayAdapter<String> adapter = new ArrayAdapter<String>(getActivity(),
@@ -102,28 +107,19 @@ public class ConnectFragment extends Fragment {
             }
         });
 
-        // if WD Broadcast receiver is ready, bind events on listview
-        mReciever = ((ConnectActivity) getActivity()).getReceiver();
-        if (mReciever != null) {
-            statusTextView.setText("Ready");
-            updateList(adapter);
-        } else {
-            // notify UI that WifiP2p has not been initialized
-            statusTextView.setText("WifiP2p has not been initialized.");
-        }
-
         // listen for onChange event for switch
         aSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     NDNController.getInstance().startProbing();
-
-                    // commented out for now, we will use the button below to discover peers
-                    // NDNController.getInstance.discoverPeers();
+                    NDNController.getInstance().startDiscoveringPeers();
+                    switchStatus = SWITCH_STATUS_ON;
                 } else {
                     // turn off
                     NDNController.getInstance().stopProbing();
+                    NDNController.getInstance().stopDiscoveringPeers();
+                    switchStatus = SWITCH_STATUs_OFF;
                 }
 
                 // update the receiver
@@ -131,25 +127,13 @@ public class ConnectFragment extends Fragment {
             }
         });
 
+        // more like a refresh button
         discoverPeersBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                try {
-                    NDNController.getInstance().discoverPeers();
-
-                    // update the receiver
-                    mReciever = ((ConnectActivity) getActivity()).getReceiver();
-                    if (mReciever != null) {
-                        updateList(adapter);
-                        statusTextView.setText("Ready.");
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    statusTextView.setText("Unable to discover peers.");
-                }
+                updateList(adapter);
             }
         });
-
 
         // Inflate the layout for this fragment
         return view;
@@ -180,6 +164,39 @@ public class ConnectFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         mListener = null;
+    }
+
+    // for saving and restoring state
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        System.err.println("onActivityCreated called");
+        System.err.println("savedInstanceState: " + savedInstanceState);
+        // restore state, if any
+        if (savedInstanceState != null) {
+
+            if (savedInstanceState.getInt("switchStatus") == SWITCH_STATUS_ON) {
+                System.err.println("Restored state says switch was on");
+                aSwitch.setChecked(true);
+                NDNController.getInstance().startProbing();
+                NDNController.getInstance().startDiscoveringPeers();
+            } else {
+                System.err.println("Restrored state says switch was off");
+                aSwitch.setChecked(false);
+                NDNController.getInstance().stopProbing();
+                NDNController.getInstance().stopDiscoveringPeers();
+            }
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle stateToSave) {
+        super.onSaveInstanceState(stateToSave);
+
+        System.err.println("onSaveInstanceState called");
+        // save any state desired
+        System.err.println("Saving switchStatus: " + switchStatus);
+        stateToSave.putInt("switchStatus", switchStatus);
     }
 
     /**
