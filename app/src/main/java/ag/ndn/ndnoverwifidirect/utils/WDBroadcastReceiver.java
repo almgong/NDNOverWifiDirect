@@ -131,12 +131,13 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                     .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
 
             if (networkInfo.isConnected()) {
-
                 // We are connected with the other device, request connection
                 // info to find group owner IP
                 mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
                     @Override
                     public void onConnectionInfoAvailable(WifiP2pInfo info) {
+                        (Toast.makeText(mActivity, "Successfully connected to group.", Toast.LENGTH_LONG)).show();
+
                         Log.d(TAG, "connection info is available!!");
 
                         // group owner address
@@ -150,9 +151,6 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                             mController.registerOwnLocalhop();
                             Log.d(TAG, "registerOwnLocalhop() called...");
                         }
-
-                        System.out.println("group owner address " + groupOwnerAddress);
-
 
                         // After the group negotiation, we can determine the group owner.
                         if (info.groupFormed && info.isGroupOwner) {
@@ -191,8 +189,6 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
 
                             // create UDP face towards GO, with callback to register /localhop/... prefix
                             mController.createFace(groupOwnerAddress, NDNController.URI_TCP_PREFIX, cb);
-
-                            (Toast.makeText(mActivity, "Successfully connected to group.", Toast.LENGTH_LONG)).show();
                         }
                     }
                 });
@@ -204,7 +200,7 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
         }
     }
 
-    private void connect(final WifiP2pDevice peerDevice) {
+    public void connect(final WifiP2pDevice peerDevice) {
 
         // config
         final WifiP2pConfig config = new WifiP2pConfig();

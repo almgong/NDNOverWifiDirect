@@ -49,7 +49,7 @@ public class ConnectFragment extends Fragment {
     // status of the switch button, 0 = off and 1 = on
     private int switchStatus;
 
-    private final int SWITCH_STATUs_OFF = 0;
+    private final int SWITCH_STATUS_OFF = 0;
     private final int SWITCH_STATUS_ON = 1;
 
     // top level GUI components
@@ -84,7 +84,6 @@ public class ConnectFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         // UI
-        // onCreate is called after attaching to parent activity
         View view = inflater.inflate(R.layout.fragment_connect, container, false);
 
         ListView listView = (ListView) view.findViewById(R.id.connectedPeersListView);
@@ -93,7 +92,7 @@ public class ConnectFragment extends Fragment {
         Button discoverPeersBtn = (Button) view.findViewById(R.id.discoverPeersBtn);
 
         aSwitch.setChecked(false);  // default OFF
-        switchStatus = SWITCH_STATUs_OFF;
+        switchStatus = SWITCH_STATUS_OFF;
 
         // for listview
         final ArrayAdapter<String> adapter = new ArrayAdapter<String>(getActivity(),
@@ -119,7 +118,7 @@ public class ConnectFragment extends Fragment {
                     // turn off
                     NDNController.getInstance().stopProbing();
                     NDNController.getInstance().stopDiscoveringPeers();
-                    switchStatus = SWITCH_STATUs_OFF;
+                    switchStatus = SWITCH_STATUS_OFF;
                 }
 
                 // update the receiver
@@ -136,6 +135,7 @@ public class ConnectFragment extends Fragment {
         });
 
         // Inflate the layout for this fragment
+        statusTextView.setText("Ready.");
         return view;
     }
 
@@ -146,11 +146,14 @@ public class ConnectFragment extends Fragment {
             connectedPeers.addAll(mReciever.getConnectedPeers());
             adapter.notifyDataSetChanged();
         }
+
+        if (mReciever.groupOwnerAddress != null) {
+            statusTextView.setText("Connected to group.");
+        }
     }
 
     @Override
     public void onAttach(Activity context) {
-        System.err.println("onAttach");
         super.onAttach(context);
         if (context instanceof OnFragmentInteractionListener) {
             mListener = (OnFragmentInteractionListener) context;
@@ -170,8 +173,7 @@ public class ConnectFragment extends Fragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        System.err.println("onActivityCreated called");
-        System.err.println("savedInstanceState: " + savedInstanceState);
+
         // restore state, if any
         if (savedInstanceState != null) {
 
@@ -193,9 +195,7 @@ public class ConnectFragment extends Fragment {
     public void onSaveInstanceState(Bundle stateToSave) {
         super.onSaveInstanceState(stateToSave);
 
-        System.err.println("onSaveInstanceState called");
         // save any state desired
-        System.err.println("Saving switchStatus: " + switchStatus);
         stateToSave.putInt("switchStatus", switchStatus);
     }
 

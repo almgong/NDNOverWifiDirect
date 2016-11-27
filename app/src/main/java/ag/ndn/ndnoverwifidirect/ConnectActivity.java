@@ -78,6 +78,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
         super.onResume();
         registerReceiver(mReceiver, mIntentFilter);
         mHandler = getHandler();
+
+        NDNController.getInstance().startDiscoveringPeers();
     }
 
     /* unregister the broadcast receiver */

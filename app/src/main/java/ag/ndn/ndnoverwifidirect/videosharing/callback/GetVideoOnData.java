@@ -43,8 +43,8 @@ public class GetVideoOnData implements NDNCallbackOnData {
 
             // there was no data in resp, meaning all data sent for resource
             // looping stops here
-            buffer.notifyEofReached(); // probably should be done a different way TODO maybe have a EOF byte[] added to buffer
-            buffer.addToBuffer(new byte[0]);    // TODO might be bggy with new transmission window method
+            buffer.notifyEofReached();          // probably should be done a different way
+            buffer.addToBuffer(new byte[0]);    // added precaution
             Log.d(TAG, String.format("All data from %s has been processed from peer, or stop was set.", tag));
 
         } else if (payload[0] == VideoPlayer.DATA_FLAG) { // packet contains data

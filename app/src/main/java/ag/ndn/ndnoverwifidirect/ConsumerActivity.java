@@ -23,9 +23,6 @@ import ag.ndn.ndnoverwifidirect.videosharing.task.GetAvailableVideosTask;
  */
 public class ConsumerActivity extends AppCompatActivity {
 
-    // handle to NDN controller
-    private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
-
     private GetAvailableVideosTask task;
 
     @Override

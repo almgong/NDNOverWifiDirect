@@ -129,7 +129,7 @@ public class VideoActivity extends AppCompatActivity {
         simpleExoPlayerView.setPlayer(player);
 
         // pause background tasks
-        //mController.stopDiscoveringPeers();
+        mController.stopDiscoveringPeers();
         mController.stopProbing();
     }
 
@@ -162,7 +162,7 @@ public class VideoActivity extends AppCompatActivity {
         }
 
         player.release();
-        //mController.startDiscoveringPeers();
+        mController.startDiscoveringPeers();
         mController.startProbing();
     }
 

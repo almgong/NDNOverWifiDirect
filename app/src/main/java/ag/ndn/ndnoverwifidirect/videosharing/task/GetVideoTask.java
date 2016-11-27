@@ -12,15 +12,18 @@ import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
+import net.named_data.jndn.OnTimeout;
 import net.named_data.jndn.security.KeyChain;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
+import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayer;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
@@ -50,6 +53,8 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
     private Context mActivity;
 
     private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
+    private Face mFace = NDNController.getInstance().getLocalHostFace();
+
     private OnData onDataReceived;  // OnData callback when data is received
     private SendInterestTask currentSendInterestTask;
 
@@ -103,7 +108,7 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
             public void onData(Interest interest, Data data) {
 
                 // end processing on prev task (optimization)
-                currentSendInterestTask.setStopProcessing(true);
+                //currentSendInterestTask.setStopProcessing(true);
 
                 byte[] payload = data.getContent().getImmutableArray();
 
@@ -139,8 +144,20 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
                     Log.d(TAG, "Daisy chaining for " + (sequenceNumber+1));
 
                     start = System.currentTimeMillis();
-                    currentSendInterestTask = (SendInterestTask) mController.sendInterest(new Interest(new Name(prefix + "/" + (++sequenceNumber))), mFace,
-                            onDataReceived, processEventsTimer);
+                    //currentSendInterestTask = (SendInterestTask) mController.sendInterest(new Interest(new Name(prefix + "/" + (++sequenceNumber))), mFace,
+                    //        onDataReceived, processEventsTimer);
+
+                    try {
+                        mFace.expressInterest(new Interest(new Name(prefix + "/" + (++sequenceNumber))), onDataReceived, new OnTimeout() {
+                            @Override
+                            public void onTimeout(Interest interest) {
+                                Log.e(TAG, "timeout for interest: " + interest.toUri());
+                                // should resend
+                            }
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
                 } else if (payload[0] == VideoPlayer.PAUSE_FLAG) {
                     // pause video player
@@ -154,75 +171,94 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
 
         Log.d(TAG, "Sending first interest for video data...");
         start = System.currentTimeMillis();
-        currentSendInterestTask = (SendInterestTask) mController.sendInterest(new Interest(new Name(prefix + "/" + sequenceNumber)),
-                mFace, onDataReceived, processEventsTimer);
+//        currentSendInterestTask = (SendInterestTask) mController.sendInterest(new Interest(new Name(prefix + "/" + sequenceNumber)),
+//                mFace, onDataReceived, processEventsTimer);
 
+        try {
+            mFace.expressInterest(new Interest(new Name(prefix + "/" + sequenceNumber)), onDataReceived,
+                    new OnTimeout() {
+                        @Override
+                        public void onTimeout(Interest interest) {
+                            Log.e(TAG, "Timeout on interest: " + interest.getName().toString());
+                        }
+                    });
 
-        if (true) return null;
-
-        // new method using transmission window -- really only a good option if device is strong enough
-
-        // until either the calling activity, or this class wants to stop
-        sequenceNumber = 0;
-        faces = new Face[windowSize];               // array of faces to use with window
-        for (int i = 0; i < faces.length; i++) {
-            faces[i] = new Face("localhost");
-        }
-        //final String prefix = params[0];
-        while (!stop) {
-            if (buffer.isFull() || window.isFull()) {
-                try {
-
-                    if (buffer.isFull() ) {
-                        Log.d(TAG, "Buffer full, sleep");
-                    } else if (window.isFull()) {
-                        Log.d(TAG, "window is full, sleep");
-                    } else {
-                        Log.d(TAG, "Either video buffer is full or task queue is full, sleep...");
-                    }
-
-                    Thread.sleep(100);
-                    window.sendToBuffer();  // perhaps some delayed packets (or missing segment holding line up)
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return null;
-                }
-
-                continue;
+            while (!stop) {
+                Thread.sleep(processEventsTimer);
+                mFace.processEvents();
             }
-
-            // fill free window spots with tasks (or rather, their "soon-to-be" data
-            for (int i = 0; i < window.numFreeSlots; i++) {
-                final int taskNum = window.endIndex;
-                System.err.println("Starting task: " + taskNum);
-                onDataReceived = new OnData() {
-                    @Override
-                    public void onData(Interest interest, Data data) {
-                        (new GetVideoOnData(taskNum, window, buffer)).doJob(interest, data);
-                    }
-                };
-
-                Log.d(TAG, "Sequence number: " + sequenceNumber);
-                mController.sendInterest(new Interest(new Name(prefix + "/" + sequenceNumber++)), faces[window.endIndex], onDataReceived, 50);
-
-                // update book keeping variables
-                window.endIndex = (window.endIndex + 1)%windowSize;
-                window.numFreeSlots--;
-            }
-
-            System.err.println("Current endIndex: " + window.endIndex + " free: " + window.numFreeSlots);
-
-            try {
-                Thread.sleep(100);      // want a little for data to come back
-                window.sendToBuffer();  // send contiguous bytes to buffer
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
+        } catch (IOException ie) {
+            ie.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
+
+//        if (true) return null;
+//
+//        // new method using transmission window -- really only a good option if device is strong enough
+//
+//        // until either the calling activity, or this class wants to stop
+//        sequenceNumber = 0;
+//        faces = new Face[windowSize];               // array of faces to use with window
+//        for (int i = 0; i < faces.length; i++) {
+//            faces[i] = new Face("localhost");
+//        }
+//        //final String prefix = params[0];
+//        while (!stop) {
+//            if (buffer.isFull() || window.isFull()) {
+//                try {
+//
+//                    if (buffer.isFull() ) {
+//                        Log.d(TAG, "Buffer full, sleep");
+//                    } else if (window.isFull()) {
+//                        Log.d(TAG, "window is full, sleep");
+//                    } else {
+//                        Log.d(TAG, "Either video buffer is full or task queue is full, sleep...");
+//                    }
+//
+//                    Thread.sleep(100);
+//                    window.sendToBuffer();  // perhaps some delayed packets (or missing segment holding line up)
+//
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                    return null;
+//                }
+//
+//                continue;
+//            }
+//
+//            // fill free window spots with tasks (or rather, their "soon-to-be" data
+//            for (int i = 0; i < window.numFreeSlots; i++) {
+//                final int taskNum = window.endIndex;
+//                System.err.println("Starting task: " + taskNum);
+//                onDataReceived = new OnData() {
+//                    @Override
+//                    public void onData(Interest interest, Data data) {
+//                        (new GetVideoOnData(taskNum, window, buffer)).doJob(interest, data);
+//                    }
+//                };
+//
+//                Log.d(TAG, "Sequence number: " + sequenceNumber);
+//                mController.sendInterest(new Interest(new Name(prefix + "/" + sequenceNumber++)), faces[window.endIndex], onDataReceived, 50);
+//
+//                // update book keeping variables
+//                window.endIndex = (window.endIndex + 1)%windowSize;
+//                window.numFreeSlots--;
+//            }
+//
+//            System.err.println("Current endIndex: " + window.endIndex + " free: " + window.numFreeSlots);
+//
+//            try {
+//                Thread.sleep(100);      // want a little for data to come back
+//                window.sendToBuffer();  // send contiguous bytes to buffer
+//
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//
+//        }
+//
         return null;
     }
 
@@ -300,6 +336,6 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
 
     @Override
     protected void onPostExecute(Void v) {
-        Toast.makeText(mActivity, "Video sharing starting....", Toast.LENGTH_SHORT).show();
+        // for any UI updates
     }
 }
