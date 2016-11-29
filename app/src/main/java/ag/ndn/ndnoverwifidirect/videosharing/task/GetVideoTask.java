@@ -52,7 +52,6 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
     private VideoPlayerBuffer buffer;
     private Context mActivity;
 
-    private NDNOverWifiDirect mController = NDNOverWifiDirect.getInstance();
     private Face mFace = NDNController.getInstance().getLocalHostFace();
 
     private OnData onDataReceived;  // OnData callback when data is received
@@ -100,7 +99,7 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
          */
         // send out interest with sequence number, e.g. /ndn/wifid/movie/[sequenceNumber], seqNum starts at 1
         final String prefix = params[0];
-        final Face mFace = new Face("localhost");
+        //final Face mFace = new Face("localhost");
         final int processEventsTimer = 50;
         onDataReceived = new OnData() {
 
@@ -144,8 +143,6 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
                     Log.d(TAG, "Daisy chaining for " + (sequenceNumber+1));
 
                     start = System.currentTimeMillis();
-                    //currentSendInterestTask = (SendInterestTask) mController.sendInterest(new Interest(new Name(prefix + "/" + (++sequenceNumber))), mFace,
-                    //        onDataReceived, processEventsTimer);
 
                     try {
                         mFace.expressInterest(new Interest(new Name(prefix + "/" + (++sequenceNumber))), onDataReceived, new OnTimeout() {

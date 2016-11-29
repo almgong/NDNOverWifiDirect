@@ -24,6 +24,7 @@ import java.util.List;
 
 import ag.ndn.ndnoverwifidirect.ConnectActivity;
 import ag.ndn.ndnoverwifidirect.R;
+import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.service.WDBroadcastReceiverService;
 import ag.ndn.ndnoverwifidirect.utils.IPAddress;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
@@ -91,7 +92,9 @@ public class ConnectFragment extends Fragment {
         NDNController.getInstance().setWifiDirectContext(getActivity());
 
         // for listview
-        connectedPeers.addAll(NDNController.getInstance().getConnectedPeers());
+        for (String deviceAddress : NDNController.getInstance().getConnectedPeers()) {
+            connectedPeers.add(NDNController.getInstance().getPeerByDeviceAddress(deviceAddress).getName());
+        }
         final ArrayAdapter<String> adapter = new ArrayAdapter<String>(getActivity(),
                 android.R.layout.simple_list_item_1, connectedPeers);
 
@@ -138,7 +141,9 @@ public class ConnectFragment extends Fragment {
         // reset connected peers list (MAC addresses)
         Log.d(TAG, "Num peers connected: " + NDNController.getInstance().getConnectedPeers().size());
         connectedPeers.clear();
-        connectedPeers.addAll(NDNController.getInstance().getConnectedPeers());
+        for (String deviceAddress : NDNController.getInstance().getConnectedPeers()) {
+            connectedPeers.add(NDNController.getInstance().getPeerByDeviceAddress(deviceAddress).getName());
+        }
         adapter.notifyDataSetChanged();
 
         if (WDBroadcastReceiver.groupOwnerAddress != null) {

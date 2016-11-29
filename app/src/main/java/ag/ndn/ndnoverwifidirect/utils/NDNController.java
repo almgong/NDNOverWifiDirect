@@ -292,12 +292,10 @@ public class NDNController {
     }
 
     public void startBroadcastReceiverService() {
-        Log.e(TAG, "startBRService called...");
         if (brService == null) {
-            Log.d(TAG, "Starting WDBR service, and toasting...");
+            Log.d(TAG, "Starting WDBR service...");
             brService = new WDBroadcastReceiverService();
             Intent intent = new Intent(wifiDirectContext, WDBroadcastReceiverService.class);
-            Log.e(TAG, "start it");
             wifiDirectContext.startService(intent);
         } else {
             Log.d(TAG, "BroadcastReceiverService already started.");
