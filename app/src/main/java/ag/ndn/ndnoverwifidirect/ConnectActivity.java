@@ -1,5 +1,7 @@
 package ag.ndn.ndnoverwifidirect;
 
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.net.Uri;
@@ -35,7 +37,8 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
     private WDBroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
 
-    private Fragment mFragment;
+    private ConnectFragment mFragment;
+    private String mFragmentTag = "connectFragmentTag";
 
     public WDBroadcastReceiver getReceiver() {
         return mReceiver;
@@ -49,13 +52,24 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
         NDNController.getInstance().setWifiDirectContext(this);
         mHandler = getHandler();
 
-        // restore fragment, if any
-        if (savedInstanceState != null) {
-            mFragment = getSupportFragmentManager().getFragment(savedInstanceState, "mFragment");
+        // if there is saved state, don't recreate the fragment
+        if (savedInstanceState == null) {
+            Log.d(TAG, "There was no state to restore.");
+            mFragment = ConnectFragment.newInstance();
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .add(R.id.connectLayout, mFragment, mFragmentTag)
+                    .commit();
+        } else {
+            Log.d(TAG, "There was STATE to restore!!");
+            mFragment = (ConnectFragment) getSupportFragmentManager()
+                    .findFragmentByTag(mFragmentTag);
         }
     }
 
     /* initialize manager and receiver for activity */
+    /* moved to WDBroadcastReceiverService */
+    @Deprecated
     private void initWifiP2p() {
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
@@ -101,15 +115,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
     @Override
     protected void onDestroy() {
         super.onDestroy();
-    }
-
-    // fragment restoration
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-
-        //Save the fragment's instance
-        //getSupportFragmentManager().putFragment(outState, "mFragment", mFragment);
     }
 
     /* implement Fragment listener(s) to allow fragment communications */
