@@ -46,14 +46,7 @@ public class ConnectFragment extends Fragment {
     private static final String TAG = "ConnectFragment";
 
     private List<String> connectedPeers = new ArrayList<>();
-    private WDBroadcastReceiver mReciever = null;
     private OnFragmentInteractionListener mListener;
-
-    // status of the switch button, 0 = off and 1 = on
-    private int switchStatus;
-
-    private final int SWITCH_STATUS_OFF = 0;
-    private final int SWITCH_STATUS_ON = 1;
 
     // top level GUI components
     private Switch aSwitch;
@@ -90,7 +83,7 @@ public class ConnectFragment extends Fragment {
         ListView listView = (ListView) view.findViewById(R.id.connectedPeersListView);
         statusTextView = (TextView) view.findViewById(R.id.statusText);
         aSwitch = (Switch) view.findViewById(R.id.serviceSwitch);
-        Button discoverPeersBtn = (Button) view.findViewById(R.id.discoverPeersBtn);
+        Button refreshPeersBtn = (Button) view.findViewById(R.id.discoverPeersBtn);
 
         // restore state as such
         aSwitch.setChecked(NDNController.getInstance().isProtocolRunning());
@@ -98,6 +91,7 @@ public class ConnectFragment extends Fragment {
         NDNController.getInstance().setWifiDirectContext(getActivity());
 
         // for listview
+        connectedPeers.addAll(NDNController.getInstance().getConnectedPeers());
         final ArrayAdapter<String> adapter = new ArrayAdapter<String>(getActivity(),
                 android.R.layout.simple_list_item_1, connectedPeers);
 
@@ -123,7 +117,7 @@ public class ConnectFragment extends Fragment {
         });
 
         // more like a refresh button
-        discoverPeersBtn.setOnClickListener(new View.OnClickListener() {
+        refreshPeersBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 updateList(adapter);
@@ -147,7 +141,7 @@ public class ConnectFragment extends Fragment {
         connectedPeers.addAll(NDNController.getInstance().getConnectedPeers());
         adapter.notifyDataSetChanged();
 
-        if (IPAddress.getLocalIPAddress() != null) {
+        if (WDBroadcastReceiver.groupOwnerAddress != null) {
             statusTextView.setText("Connected to group.");
         }
     }
