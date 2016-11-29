@@ -65,7 +65,8 @@ public class NDNController {
     private ProbeTask probeTask = null;
     private WDBroadcastReceiverService brService = null;
     private boolean hasRegisteredOwnLocalhop = false;
-    private boolean isGroupOwner = false;   // set in broadcast receiver, defaulted to false, used primarily in ProbeOnInterest
+    private boolean isGroupOwner = false;       // set in broadcast receiver, defaulted to false, used primarily in ProbeOnInterest
+    private boolean protocolRunning = false;    // whether the tasks/services of this protocol are reported running
     private HashMap<String, Peer> connectedPeers;
 
     private final Face mFace = new Face("localhost"); // single face instance at localhost, not to be used outside of this class
@@ -327,12 +328,43 @@ public class NDNController {
             // we will treat this as meaning both are not active
             startDiscoveringPeers();
             startProbing();
+            startBroadcastReceiverService();
             return true;
         } else {
             stopDiscoveringPeers();
             stopProbing();
+            stopBroadcastReceiverService();
             return false;
         }
+    }
+
+    /**
+     * Convenience wrapper method to start all background
+     * tasks/services for this protocol.
+     */
+    public void startDiscoverAndProbe() {
+        // we will treat this as meaning both are not active
+        startDiscoveringPeers();
+        startProbing();
+        startBroadcastReceiverService();
+
+        protocolRunning = true;
+    }
+
+    /**
+     * Convenience wrapper method to stop all background
+     * tasts/services for this protocol.
+     */
+    public void stopDiscoverAndProbe() {
+        stopDiscoveringPeers();
+        stopProbing();
+        stopBroadcastReceiverService();
+
+        protocolRunning = false;
+    }
+
+    public boolean isProtocolRunning() {
+        return protocolRunning;
     }
 
     /**

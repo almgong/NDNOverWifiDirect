@@ -92,8 +92,8 @@ public class ConnectFragment extends Fragment {
         aSwitch = (Switch) view.findViewById(R.id.serviceSwitch);
         Button discoverPeersBtn = (Button) view.findViewById(R.id.discoverPeersBtn);
 
-        aSwitch.setChecked(false);  // default OFF
-        switchStatus = SWITCH_STATUS_OFF;
+        // restore state as such
+        aSwitch.setChecked(NDNController.getInstance().isProtocolRunning());
 
         NDNController.getInstance().setWifiDirectContext(getActivity());
 
@@ -114,17 +114,10 @@ public class ConnectFragment extends Fragment {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    NDNController.getInstance().startProbing();
-                    NDNController.getInstance().startDiscoveringPeers();
-                    NDNController.getInstance().startBroadcastReceiverService();
-                    //(getActivity()).startService(new Intent(getActivity(), WDBroadcastReceiverService.class));
-                    switchStatus = SWITCH_STATUS_ON;
+                    NDNController.getInstance().startDiscoverAndProbe();
                 } else {
                     // turn off
-                    NDNController.getInstance().stopProbing();
-                    NDNController.getInstance().stopDiscoveringPeers();
-                    NDNController.getInstance().stopBroadcastReceiverService();
-                    switchStatus = SWITCH_STATUS_OFF;
+                    NDNController.getInstance().stopDiscoverAndProbe();
                 }
             }
         });
@@ -139,6 +132,11 @@ public class ConnectFragment extends Fragment {
 
         // Inflate the layout for this fragment
         statusTextView.setText("Ready.");
+
+        if (WDBroadcastReceiver.groupOwnerAddress != null) {
+            statusTextView.setText("Connected to group.");
+        }
+
         return view;
     }
 
