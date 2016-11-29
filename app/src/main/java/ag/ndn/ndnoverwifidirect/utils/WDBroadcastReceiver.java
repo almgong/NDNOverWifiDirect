@@ -17,9 +17,11 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import ag.ndn.ndnoverwifidirect.ConnectActivity;
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
+import ag.ndn.ndnoverwifidirect.model.Peer;
 
 import static android.content.ContentValues.TAG;
 
@@ -41,33 +43,16 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
 
     private WifiP2pManager mManager;
     private WifiP2pManager.Channel mChannel;
-    private Activity mActivity;
 
     private NDNController mController;
-
-    private HashSet<String> connectedPeers;
     private int maxPeers = 5;// max number of peers per group
 
-    public WDBroadcastReceiver(WifiP2pManager manager, WifiP2pManager.Channel channel,
-                                       Activity activity) { // was MyWifiActivity
+    public WDBroadcastReceiver(WifiP2pManager manager, WifiP2pManager.Channel channel) {
         super();
+
         this.mManager = manager;
         this.mChannel = channel;
-        this.mActivity = activity;
-
         this.mController = NDNController.getInstance();
-
-        this.connectedPeers = new HashSet<>();
-    }
-
-    public List<String> getConnectedPeers() {
-        ArrayList<String> ret = new ArrayList<>(connectedPeers.size());
-
-        for (String peerMacAddr : connectedPeers) {
-            ret.add(peerMacAddr);
-        }
-
-        return ret;
     }
 
     @Override
@@ -105,12 +90,18 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                                 String.format("Peers available: %d", peers.getDeviceList().size()));
 
                         // TODO some diff algorithm to remove peers from list
+                        Set<String> connectedPeers = mController.getConnectedPeers();
 
                         // attempt to connect to all devices in range up to the max:
                         for (WifiP2pDevice device : peers.getDeviceList()) {
-                            if (!connectedPeers.contains(device.deviceAddress) &&
-                                    connectedPeers.size() <= maxPeers) {
 
+                            Peer peer = new Peer();
+                            peer.setDeviceAddress(device.deviceAddress);
+                            peer.setName(device.deviceName);
+
+                            // if mController is accepting a new peer, connect to it
+                            if (!connectedPeers.contains(device.deviceAddress) &&
+                                    mController.logConnectedPeer(peer)) {
                                 connect(device);
                             }
                         }
@@ -136,7 +127,7 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                 mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
                     @Override
                     public void onConnectionInfoAvailable(WifiP2pInfo info) {
-                        (Toast.makeText(mActivity, "Successfully connected to group.", Toast.LENGTH_LONG)).show();
+                        //(Toast.makeText(mActivity, "Successfully connected to group.", Toast.LENGTH_LONG)).show();
 
                         Log.d(TAG, "connection info is available!!");
 
@@ -214,16 +205,15 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
             public void onSuccess() {
                 // logic goes to onReceive()
                 Log.d(TAG, "Connect successful for: " + config.deviceAddress);
-                connectedPeers.add(config.deviceAddress);
             }
 
             @Override
             public void onFailure(int reason) {
-                Toast.makeText(mActivity, "Connect failed for " + config.deviceAddress,
-                        Toast.LENGTH_SHORT).show();
+                //Toast.makeText(mActivity, "Connect failed for " + config.deviceAddress,
+                //        Toast.LENGTH_SHORT).show();
 
                 // remove log of this device from connectedPeers
-                connectedPeers.remove(config.deviceAddress);
+                mController.getConnectedPeers().remove(config.deviceAddress);
             }
         });
     }
@@ -233,7 +223,7 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
      * normal operation.
      */
     public void resetState() {
-        connectedPeers.clear();
+        //connectedPeers.clear();
         myAddress = null;
         groupOwnerAddress = null;
     }

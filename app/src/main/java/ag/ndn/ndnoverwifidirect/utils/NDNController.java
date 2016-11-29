@@ -1,6 +1,7 @@
 package ag.ndn.ndnoverwifidirect.utils;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -16,14 +17,19 @@ import net.named_data.jndn.security.identity.MemoryIdentityStorage;
 import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
 
 import java.util.HashMap;
+import java.util.Set;
 
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
 import ag.ndn.ndnoverwifidirect.callback.ProbeOnInterest;
+import ag.ndn.ndnoverwifidirect.model.Peer;
+import ag.ndn.ndnoverwifidirect.service.WDBroadcastReceiverService;
 import ag.ndn.ndnoverwifidirect.task.DiscoverPeersTask;
 import ag.ndn.ndnoverwifidirect.task.FaceCreateTask;
 import ag.ndn.ndnoverwifidirect.task.ProbeTask;
 import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
 import ag.ndn.ndnoverwifidirect.task.RibRegisterPrefixTask;
+
+import static android.R.attr.max;
 
 /**
  * New streamlined NDNOverWifiDirect controller. One instance exists
@@ -44,6 +50,7 @@ public class NDNController {
     public static final String DATA_PREFIX = "/ndn/wifidirect";
 
     private static final String TAG = "NDNController";
+    private static final int MAX_PEERS = 5;
 
     // singleton
     private static NDNController mController = null;
@@ -51,13 +58,15 @@ public class NDNController {
     // WiFi Direct related resources
     private WifiP2pManager wifiP2pManager = null;
     private WifiP2pManager.Channel channel = null;
-    private Context wifiDirectContext = null;
+    private Context wifiDirectContext = null;       // context in which WiFi direct operations begin (the activity/fragment)
 
     // shared members (GO and Non-GO)
     private DiscoverPeersTask discoverPeersTask = null;
     private ProbeTask probeTask = null;
+    private WDBroadcastReceiverService brService = null;
     private boolean hasRegisteredOwnLocalhop = false;
     private boolean isGroupOwner = false;   // set in broadcast receiver, defaulted to false, used primarily in ProbeOnInterest
+    private HashMap<String, Peer> connectedPeers;
 
     private final Face mFace = new Face("localhost"); // single face instance at localhost, not to be used outside of this class
 
@@ -73,6 +82,7 @@ public class NDNController {
         try {
             KeyChain kc = buildTestKeyChain();
             mFace.setCommandSigningInfo(kc, kc.getDefaultCertificateName());
+            connectedPeers = new HashMap<>(MAX_PEERS);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -87,6 +97,34 @@ public class NDNController {
         return mController;
     }
 
+    /**
+     * Attempts to add a peer to a rolling list of connected peers, up to MAX_PEERS amount.
+     *
+     * @param peer
+     * @return true if addition was successful, false otherwise (e.g. max peers number reached).
+     */
+    public boolean logConnectedPeer(Peer peer) {
+        if (connectedPeers.size() < MAX_PEERS) {
+            if (!connectedPeers.containsKey(peer.getDeviceAddress())) {
+                connectedPeers.put(peer.getDeviceAddress(), peer);
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public Set<String> getConnectedPeers() {
+        return connectedPeers.keySet();
+    }
+
+    public Peer getPeerByDeviceAddress(String deviceAddress) {
+        return connectedPeers.get(deviceAddress);
+    }
+
+    public void removeConnectedPeer(String deviceAddress) {
+        connectedPeers.remove(deviceAddress);
+    }
 
     // shared methods
 
@@ -138,10 +176,12 @@ public class NDNController {
      * @param wifiP2pManager
      * @param channel
      */
-    public void recordWifiP2pResources(WifiP2pManager wifiP2pManager, WifiP2pManager.Channel channel,
-                                  Context context) {
+    public void recordWifiP2pResources(WifiP2pManager wifiP2pManager, WifiP2pManager.Channel channel) {
         this.wifiP2pManager = wifiP2pManager;
         this.channel = channel;
+    }
+
+    public void setWifiDirectContext(Context context) {
         this.wifiDirectContext = context;
     }
 
@@ -250,6 +290,29 @@ public class NDNController {
         }
     }
 
+    public void startBroadcastReceiverService() {
+        Log.e(TAG, "startBRService called...");
+        if (brService == null) {
+            Log.d(TAG, "Starting WDBR service, and toasting...");
+            brService = new WDBroadcastReceiverService();
+            Intent intent = new Intent(wifiDirectContext, WDBroadcastReceiverService.class);
+            Log.e(TAG, "start it");
+            wifiDirectContext.startService(intent);
+        } else {
+            Log.d(TAG, "BroadcastReceiverService already started.");
+        }
+    }
+
+    public void stopBroadcastReceiverService() {
+        if (brService == null) {
+            Log.d(TAG, "BroadcastReceiverService not running, no need to stop.");
+        } else {
+            Log.d(TAG, "Stopping WDBR service.");
+            brService.stopSelf();
+            brService = null;
+        }
+    }
+
     /**
      * Toggles the state of probing and disovering
      * peers. Internally, this is equivalent to
@@ -317,8 +380,6 @@ public class NDNController {
                 Log.d(TAG, "Fail discover peers, reasoncode: " + reasonCode);
             }
         });
-
-
     }
 
     /**

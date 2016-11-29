@@ -45,6 +45,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".VideoActivity"></activity>
+        <service android:name=".service.WDBroadcastReceiverService"
+            android:exported="false"/>
     </application>
 
 </manifest>

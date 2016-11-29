@@ -50,7 +50,6 @@ public class LandingActivity extends AppCompatActivity {
         });
 
         // init NDNOverWifiDirect's controller
-        //NDNOverWifiDirect.getInstance();
         NDNController.getInstance();
     }
 

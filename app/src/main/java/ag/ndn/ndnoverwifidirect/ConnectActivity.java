@@ -46,9 +46,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Log.d(TAG, "Init WifiP2P...");
-        initWifiP2p();
-
+        NDNController.getInstance().setWifiDirectContext(this);
         mHandler = getHandler();
 
         // restore fragment, if any
@@ -61,7 +59,7 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
     private void initWifiP2p() {
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
-        mReceiver = new WDBroadcastReceiver(mManager, mChannel, this);
+        //mReceiver = new WDBroadcastReceiver(mManager, mChannel, this);
 
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
@@ -69,27 +67,23 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-        NDNController.getInstance().recordWifiP2pResources(mManager, mChannel, this);
+        NDNController.getInstance().recordWifiP2pResources(mManager, mChannel);
     }
 
     /* register the broadcast receiver with the intent values to be matched */
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(mReceiver, mIntentFilter);
+        //registerReceiver(mReceiver, mIntentFilter);
         mHandler = getHandler();
-
-        NDNController.getInstance().startDiscoveringPeers();
     }
 
     /* unregister the broadcast receiver */
     @Override
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(mReceiver);
+        //unregisterReceiver(mReceiver);
         mHandler = null;
-
-        NDNController.getInstance().stopDiscoveringPeers();
     }
 
     // returns a handler for connection success

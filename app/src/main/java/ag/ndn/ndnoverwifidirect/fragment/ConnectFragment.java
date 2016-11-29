@@ -2,6 +2,7 @@ package ag.ndn.ndnoverwifidirect.fragment;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -23,6 +24,8 @@ import java.util.List;
 
 import ag.ndn.ndnoverwifidirect.ConnectActivity;
 import ag.ndn.ndnoverwifidirect.R;
+import ag.ndn.ndnoverwifidirect.service.WDBroadcastReceiverService;
+import ag.ndn.ndnoverwifidirect.utils.IPAddress;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
 
@@ -75,8 +78,6 @@ public class ConnectFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        System.err.println("oncreate");
     }
 
     @Override
@@ -93,6 +94,8 @@ public class ConnectFragment extends Fragment {
 
         aSwitch.setChecked(false);  // default OFF
         switchStatus = SWITCH_STATUS_OFF;
+
+        NDNController.getInstance().setWifiDirectContext(getActivity());
 
         // for listview
         final ArrayAdapter<String> adapter = new ArrayAdapter<String>(getActivity(),
@@ -113,16 +116,16 @@ public class ConnectFragment extends Fragment {
                 if (isChecked) {
                     NDNController.getInstance().startProbing();
                     NDNController.getInstance().startDiscoveringPeers();
+                    NDNController.getInstance().startBroadcastReceiverService();
+                    //(getActivity()).startService(new Intent(getActivity(), WDBroadcastReceiverService.class));
                     switchStatus = SWITCH_STATUS_ON;
                 } else {
                     // turn off
                     NDNController.getInstance().stopProbing();
                     NDNController.getInstance().stopDiscoveringPeers();
+                    NDNController.getInstance().stopBroadcastReceiverService();
                     switchStatus = SWITCH_STATUS_OFF;
                 }
-
-                // update the receiver
-                mReciever = ((ConnectActivity) getActivity()).getReceiver();
             }
         });
 
@@ -140,14 +143,13 @@ public class ConnectFragment extends Fragment {
     }
 
     private void updateList(ArrayAdapter<String> adapter) {
-        if (mReciever != null) {
-            // reset connected peers list (MAC addresses)
-            connectedPeers.clear();
-            connectedPeers.addAll(mReciever.getConnectedPeers());
-            adapter.notifyDataSetChanged();
-        }
+        // reset connected peers list (MAC addresses)
+        Log.d(TAG, "Num peers connected: " + NDNController.getInstance().getConnectedPeers().size());
+        connectedPeers.clear();
+        connectedPeers.addAll(NDNController.getInstance().getConnectedPeers());
+        adapter.notifyDataSetChanged();
 
-        if (mReciever.groupOwnerAddress != null) {
+        if (IPAddress.getLocalIPAddress() != null) {
             statusTextView.setText("Connected to group.");
         }
     }
@@ -167,36 +169,6 @@ public class ConnectFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         mListener = null;
-    }
-
-    // for saving and restoring state
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
-        // restore state, if any
-        if (savedInstanceState != null) {
-
-            if (savedInstanceState.getInt("switchStatus") == SWITCH_STATUS_ON) {
-                System.err.println("Restored state says switch was on");
-                aSwitch.setChecked(true);
-                NDNController.getInstance().startProbing();
-                NDNController.getInstance().startDiscoveringPeers();
-            } else {
-                System.err.println("Restrored state says switch was off");
-                aSwitch.setChecked(false);
-                NDNController.getInstance().stopProbing();
-                NDNController.getInstance().stopDiscoveringPeers();
-            }
-        }
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle stateToSave) {
-        super.onSaveInstanceState(stateToSave);
-
-        // save any state desired
-        stateToSave.putInt("switchStatus", switchStatus);
     }
 
     /**
