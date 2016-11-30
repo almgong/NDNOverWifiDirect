@@ -12,7 +12,7 @@ import ag.ndn.ndnoverwifidirect.utils.NDNController;
 
 public class DiscoverPeersTask extends AsyncTask<Void, Void, Void> {
 
-    private static final int REPEAT_TIMER_MS = 15000;   // when to check for peers again
+    private static final int REPEAT_TIMER_MS = 10000;   // when to check for peers again
     private boolean loop = true;
 
     public void stop() {
