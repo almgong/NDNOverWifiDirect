@@ -40,10 +40,6 @@ public class ConnectActivity extends AppCompatActivity implements ConnectFragmen
     private ConnectFragment mFragment;
     private String mFragmentTag = "connectFragmentTag";
 
-    public WDBroadcastReceiver getReceiver() {
-        return mReceiver;
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
