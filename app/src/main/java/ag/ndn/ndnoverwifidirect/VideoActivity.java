@@ -7,7 +7,6 @@ import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
-import android.widget.VideoView;
 
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
@@ -40,7 +39,6 @@ public class VideoActivity extends AppCompatActivity {
 
     private static final String TAG = "VideoActivity";
 
-    private VideoView videoView;
     private SimpleExoPlayerView simpleExoPlayerView;
     private Bundle bundle;
 
@@ -117,7 +115,6 @@ public class VideoActivity extends AppCompatActivity {
             //simpleExoPlayerView.setUseController(false);    // consumers use a different controller
 
             // TODO bind the seekbar for consumers
-
             player.setPlayWhenReady(true);
         }
 
@@ -128,20 +125,23 @@ public class VideoActivity extends AppCompatActivity {
         simpleExoPlayerView.setPlayer(player);
 
         // pause background tasks
-        mController.stopDiscoveringPeers();
-        mController.stopProbing();
+        //mController.stopDiscoveringPeers();
+        //mController.stopProbing();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
-        // restart getVideoTask or pushVideoTask as needed
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
 
         if (bundle.getBoolean("isLocal")) {                     // producer
             // stop responding to interests towards this prefix
@@ -161,29 +161,8 @@ public class VideoActivity extends AppCompatActivity {
         }
 
         player.release();
-        mController.startDiscoveringPeers();
-        mController.startProbing();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        player.release();
-
-        if (bundle.getBoolean("isLocal")) {
-            pushVideoTask.setStopProcessing(true);
-
-            // close input stream if it is open
-            if (ras != null) {
-                try {
-                    ras.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        } else {
-            getVideoTask.stop(true);
-        }
+        //mController.startDiscoveringPeers();
+        //mController.startProbing();
     }
 
     // helpers
@@ -206,7 +185,8 @@ public class VideoActivity extends AppCompatActivity {
      */
     private void registerVideoPrefix(String prefix) {
         Log.d(TAG, "REGISTERING VIDEO PREFIX FOR SHARING...");
-        Face mFace = mController.getLocalHostFace();
+        //Face mFace = mController.getLocalHostFace();
+        Face mFace = ProducerActivity.PRODUCER_FACE;
 
         try {
             ras = new RandomAccessFile(bundle.getString("videoUri"), "r");
@@ -216,6 +196,8 @@ public class VideoActivity extends AppCompatActivity {
             return;
         }
 
+        // ideally, mController should not exist and the app would need to register the prefix manually
+        // but OK for demo purposes to invoke mController's convenience methods
          pushVideoTask = (RegisterPrefixTask)mController.registerPrefix(mFace, prefix, new OnInterestCallback() {
 
             @Override

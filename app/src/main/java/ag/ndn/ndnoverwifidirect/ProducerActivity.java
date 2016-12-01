@@ -18,6 +18,9 @@ import android.widget.ListView;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.protobuf.UnknownFieldSet;
 
+import net.named_data.jndn.Face;
+import net.named_data.jndn.security.KeyChain;
+
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -34,9 +37,13 @@ import ag.ndn.ndnoverwifidirect.videosharing.util.NDNSanitizer;
 import static android.R.attr.name;
 
 /**
- * TODO: add producer logic here
+ * Producer activity, should display to the user all supported media types
+ * available to share.
  */
 public class ProducerActivity extends AppCompatActivity {
+
+    // localhost face for producer to use
+    public static final Face PRODUCER_FACE = new Face("localhost");
 
     private static final String TAG = "ProducerActivity";
     private final String VIDEO_RESOURCE_LOCATION = Environment.getExternalStorageDirectory() + "/" + Environment.DIRECTORY_MOVIES;
@@ -83,6 +90,14 @@ public class ProducerActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        try {
+            KeyChain kc = NDNController.getInstance().getKeyChain();
+            PRODUCER_FACE.setCommandSigningInfo(kc, kc.getDefaultCertificateName());
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e(TAG, "Could not set up command signing info for producer face.");
+        }
+
         // get a list of local videos
         VideoResourceList producerVideoResourceList = GlobalLists.getProducerVideoResourceList();
         producerVideoResourceList.clear();
@@ -114,5 +129,12 @@ public class ProducerActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "Destroying producer face...");
+        PRODUCER_FACE.shutdown();
     }
 }
