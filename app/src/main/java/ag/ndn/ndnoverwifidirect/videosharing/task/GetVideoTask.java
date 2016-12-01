@@ -79,6 +79,7 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
 
     @Override
     protected Void doInBackground(String... params) {
+        final Face mFace =  new Face("localhost");
 
         /**
          * Method 1: Daisy Chaining
@@ -145,11 +146,19 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
                     start = System.currentTimeMillis();
 
                     try {
-                        mFace.expressInterest(new Interest(new Name(prefix + "/" + (++sequenceNumber))), onDataReceived, new OnTimeout() {
+                        final Interest nextInterest = new Interest(new Name(prefix + "/" + (++sequenceNumber)));
+                        nextInterest.setMustBeFresh(false);
+                        mFace.expressInterest(nextInterest, onDataReceived, new OnTimeout() {
                             @Override
                             public void onTimeout(Interest interest) {
-                                Log.e(TAG, "timeout for interest: " + interest.toUri());
-                                // should resend
+                                Log.e(TAG, "timeout for interest, resending one more time: " + interest.toUri());
+                                // try to resend one more time
+
+                                try {
+                                    mFace.expressInterest(nextInterest, onDataReceived);
+                                } catch (IOException ioe) {
+                                    ioe.printStackTrace();
+                                }
                             }
                         });
                     } catch (Exception e) {
@@ -188,6 +197,8 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
             ie.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            mFace.shutdown();
         }
 
 
