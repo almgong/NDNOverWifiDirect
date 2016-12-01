@@ -38,7 +38,6 @@ public class WDBroadcastReceiverService extends Service {
 
     @Override
     public void onCreate() {
-        Log.d(TAG, "onCreate() service");
         Log.d(TAG, "initWifiP2p() service");
         initWifiP2p();
 
@@ -46,8 +45,6 @@ public class WDBroadcastReceiverService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "onStartCommand() service");
-
         Log.d(TAG, "registerReceiver()");
         registerReceiver(mReceiver, mIntentFilter);
 

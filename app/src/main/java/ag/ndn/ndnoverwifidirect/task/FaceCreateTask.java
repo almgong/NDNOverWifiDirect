@@ -6,13 +6,10 @@ import android.util.Log;
 import com.intel.jndn.management.ManagementException;
 import com.intel.jndn.management.Nfdc;
 
-import net.named_data.jndn.Face;
-import net.named_data.jndn.Name;
 import net.named_data.jndn_xx.util.FaceUri;
 
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
-import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
 /**
  * Created by allengong on 7/29/16.

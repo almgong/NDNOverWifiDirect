@@ -1,11 +1,8 @@
 package ag.ndn.ndnoverwifidirect.videosharing.task;
 
-import android.app.Activity;
 import android.content.Context;
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.util.Log;
-import android.widget.Toast;
 
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
@@ -13,24 +10,14 @@ import net.named_data.jndn.Interest;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
 import net.named_data.jndn.OnTimeout;
-import net.named_data.jndn.security.KeyChain;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
 
 import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
-import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayer;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
-import ag.ndn.ndnoverwifidirect.videosharing.callback.GetVideoOnData;
-
-import static android.content.ContentValues.TAG;
-import static android.os.Environment.getExternalStorageDirectory;
 
 /**
  * Asynchronous task that will repeatedly query network
@@ -153,7 +140,6 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
                             public void onTimeout(Interest interest) {
                                 Log.e(TAG, "timeout for interest, resending one more time: " + interest.toUri());
                                 // try to resend one more time
-
                                 try {
                                     mFace.expressInterest(nextInterest, onDataReceived);
                                 } catch (IOException ioe) {
@@ -177,8 +163,6 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
 
         Log.d(TAG, "Sending first interest for video data...");
         start = System.currentTimeMillis();
-//        currentSendInterestTask = (SendInterestTask) mController.sendInterest(new Interest(new Name(prefix + "/" + sequenceNumber)),
-//                mFace, onDataReceived, processEventsTimer);
 
         try {
             mFace.expressInterest(new Interest(new Name(prefix + "/" + sequenceNumber)), onDataReceived,

@@ -102,7 +102,10 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                             // if mController is accepting a new peer, connect to it
                             if (!connectedPeers.contains(device.deviceAddress) &&
                                     mController.logConnectedPeer(peer)) {
+                                Log.d(TAG, "Connecting to " + peer.getDeviceAddress());
                                 connect(device);
+                            } else {
+                                Log.d(TAG, "Peer: " + peer.getDeviceAddress() + " already in group, skip.");
                             }
                         }
                     }
@@ -181,6 +184,9 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                             // create UDP face towards GO, with callback to register /localhop/... prefix
                             mController.createFace(groupOwnerAddress, NDNController.URI_TCP_PREFIX, cb);
                         }
+
+                        //Log.d(TAG, "@@@ OK, restart discovering peers.");
+                        //NDNController.getInstance().startDiscoveringPeers();
                     }
                 });
             }
@@ -205,6 +211,8 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
             public void onSuccess() {
                 // logic goes to onReceive()
                 Log.d(TAG, "Connect successful for: " + config.deviceAddress);
+                //Log.d(TAG, "@@@ Pause discovering peers for now.");
+                //NDNController.getInstance().stopDiscoveringPeers();
             }
 
             @Override

@@ -6,11 +6,7 @@ import android.util.Log;
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
-import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
-import net.named_data.jndn.security.KeyChain;
-
-import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
 /**
  * May need to create a thread in case the async task takes too long (waiting for data). This

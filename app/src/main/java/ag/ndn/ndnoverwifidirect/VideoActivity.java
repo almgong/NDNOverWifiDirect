@@ -27,7 +27,6 @@ import java.io.RandomAccessFile;
 
 import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
-import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayer;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
 import ag.ndn.ndnoverwifidirect.videosharing.callback.GetVideoOnInterest;

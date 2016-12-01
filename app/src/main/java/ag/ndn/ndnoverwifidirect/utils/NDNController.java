@@ -35,7 +35,7 @@ import static android.R.attr.max;
  * New streamlined NDNOverWifiDirect controller. One instance exists
  * for the application.
  *
- * 1. No longer subclasses NfdcHelper class, instead uses delegation.
+ * 1. No longer subclasses NfdcHelper class.
  * 2. GO's will keep track of Faces to peers (faceIds), while non-GO
  * effectively have a single face to GO
  *
@@ -263,9 +263,11 @@ public class NDNController {
      * Stops discovering peers periodically.
      */
     public void stopDiscoveringPeers() {
+
         if (discoverPeersTask != null) {
             discoverPeersTask.stop();
             discoverPeersTask = null;
+            Log.d(TAG, "Stopped DiscoveringPeersTask.");
         }
     }
 

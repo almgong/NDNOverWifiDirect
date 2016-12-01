@@ -8,7 +8,6 @@ import android.view.View;
 import android.widget.Button;
 
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
-import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 
 public class LandingActivity extends AppCompatActivity {
 
@@ -49,7 +48,7 @@ public class LandingActivity extends AppCompatActivity {
             }
         });
 
-        // init NDNOverWifiDirect's controller
+        // init controller
         NDNController.getInstance();
     }
 

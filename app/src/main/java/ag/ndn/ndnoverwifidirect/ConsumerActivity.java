@@ -11,7 +11,6 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 
-import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
 import ag.ndn.ndnoverwifidirect.videosharing.model.GlobalLists;
 import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResource;
 import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResourceList;

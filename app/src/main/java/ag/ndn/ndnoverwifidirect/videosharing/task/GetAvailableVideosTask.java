@@ -9,26 +9,14 @@ import android.widget.ProgressBar;
 import com.intel.jndn.management.Nfdc;
 import com.intel.jndn.management.types.FibEntry;
 
-import net.named_data.jndn.Data;
-import net.named_data.jndn.Face;
-import net.named_data.jndn.Interest;
-import net.named_data.jndn.Name;
-import net.named_data.jndn.OnData;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import ag.ndn.ndnoverwifidirect.VideoActivity;
-import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
-import ag.ndn.ndnoverwifidirect.utils.IPAddress;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
-import ag.ndn.ndnoverwifidirect.utils.NDNOverWifiDirect;
-import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
 import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResource;
 import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResourceList;
 
-import static android.R.attr.startOffset;
 import static android.content.ContentValues.TAG;
 
 /**
