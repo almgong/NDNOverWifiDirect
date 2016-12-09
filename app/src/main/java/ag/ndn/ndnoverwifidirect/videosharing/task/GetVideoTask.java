@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
-import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayer;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
 
@@ -39,7 +38,7 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
     private VideoPlayerBuffer buffer;
     private Context mActivity;
 
-    private Face mFace = NDNController.getInstance().getLocalHostFace();
+    //private Face mFace = NDNController.getInstance().getLocalHostFace();
 
     private OnData onDataReceived;  // OnData callback when data is received
     private SendInterestTask currentSendInterestTask;
@@ -66,6 +65,7 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
 
     @Override
     protected Void doInBackground(String... params) {
+        // create a single localhost face
         final Face mFace =  new Face("localhost");
 
         /**
@@ -108,7 +108,7 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
                     Log.d(TAG, String.format("All data from %s has been processed from peer, or stop was set.", prefix));
 
                 } else if (payload[0] == VideoPlayer.DATA_FLAG) { // packet contains data
-                    System.err.println("Took " + (System.currentTimeMillis()-start + " ms to get packet"));
+                    Log.i(TAG, "Took " + (System.currentTimeMillis()-start + " ms to get packet"));
                     //System.out.println("Size of entire payload is: " + payload.length);
 
                     // parse custom header
@@ -182,6 +182,8 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
+
+            // destroy localhost face after we call stop
             mFace.shutdown();
         }
 

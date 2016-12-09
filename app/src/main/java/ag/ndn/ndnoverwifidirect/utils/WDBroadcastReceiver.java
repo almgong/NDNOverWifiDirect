@@ -15,6 +15,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -89,21 +90,41 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                         Log.d(TAG,
                                 String.format("Peers available: %d", peers.getDeviceList().size()));
 
-                        // TODO some diff algorithm to remove peers from list
-                        Set<String> connectedPeers = mController.getConnectedPeers();
-
-                        // attempt to connect to all devices in range up to the max:
+                        // create temporary map of new peers {macAddress:device, ...}
+                        HashMap<String, WifiP2pDevice> newPeers =
+                                new HashMap<>(peers.getDeviceList().size());
                         for (WifiP2pDevice device : peers.getDeviceList()) {
+                            newPeers.put(device.deviceAddress, device);
+                        }
 
+                        // iterate through currently connected peers, removing already connected
+                        // peers and those that are no longer available
+                        for (String peerMacAddr : mController.getConnectedPeers()) {
+                            if (newPeers.containsKey(peerMacAddr)) {
+                                newPeers.remove(peerMacAddr);
+                            } else {
+                                // this means the current peer is no longer available
+                                mController.removeConnectedPeer(peerMacAddr);
+                            }
+                        }
+
+                        // now go ahead and add as many peers as possible
+                        Set<String> connectedPeers = mController.getConnectedPeers();
+                        for (String peerMacAddr : newPeers.keySet()) {
+
+                            WifiP2pDevice device = newPeers.get(peerMacAddr);
                             Peer peer = new Peer();
                             peer.setDeviceAddress(device.deviceAddress);
                             peer.setName(device.deviceName);
 
                             // if mController is accepting a new peer, connect to it
-                            if (!connectedPeers.contains(device.deviceAddress) &&
-                                    mController.logConnectedPeer(peer)) {
-                                Log.d(TAG, "Connecting to " + peer.getDeviceAddress());
-                                connect(device);
+                            if (!connectedPeers.contains(device.deviceAddress)) {
+                                if (mController.logConnectedPeer(peer)) {
+                                    Log.d(TAG, "Connecting to " + peer.getDeviceAddress());
+                                    connect(device);
+                                } else {
+                                    Log.d(TAG, "Maximum number of connected peers reached.");
+                                }
                             } else {
                                 Log.d(TAG, "Peer: " + peer.getDeviceAddress() + " already in group, skip.");
                             }

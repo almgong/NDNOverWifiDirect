@@ -11,6 +11,8 @@ import ag.ndn.ndnoverwifidirect.utils.NDNController;
 
 public class LandingActivity extends AppCompatActivity {
 
+    private static final String TAG = "LandingActivity";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,6 +52,11 @@ public class LandingActivity extends AppCompatActivity {
 
         // init controller
         NDNController.getInstance();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
     }
 
 }

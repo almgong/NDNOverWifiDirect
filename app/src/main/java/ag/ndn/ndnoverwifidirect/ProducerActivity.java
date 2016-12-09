@@ -1,12 +1,8 @@
 package ag.ndn.ndnoverwifidirect;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.Settings;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -15,14 +11,10 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.protobuf.UnknownFieldSet;
-
 import net.named_data.jndn.Face;
 import net.named_data.jndn.security.KeyChain;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,15 +26,12 @@ import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResource;
 import ag.ndn.ndnoverwifidirect.videosharing.model.VideoResourceList;
 import ag.ndn.ndnoverwifidirect.videosharing.util.NDNSanitizer;
 
-import static android.R.attr.name;
-
 /**
  * Producer activity, should display to the user all supported media types
  * available to share.
  */
 public class ProducerActivity extends AppCompatActivity {
 
-    // localhost face for producer to use
     public static final Face PRODUCER_FACE = new Face("localhost");
 
     private static final String TAG = "ProducerActivity";
@@ -90,14 +79,6 @@ public class ProducerActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        try {
-            KeyChain kc = NDNController.getInstance().getKeyChain();
-            PRODUCER_FACE.setCommandSigningInfo(kc, kc.getDefaultCertificateName());
-        } catch (Exception e) {
-            e.printStackTrace();
-            Log.e(TAG, "Could not set up command signing info for producer face.");
-        }
-
         // get a list of local videos
         VideoResourceList producerVideoResourceList = GlobalLists.getProducerVideoResourceList();
         producerVideoResourceList.clear();
@@ -129,12 +110,19 @@ public class ProducerActivity extends AppCompatActivity {
             }
         });
 
+        try {
+            KeyChain kc = NDNController.getInstance().getKeyChain();
+            PRODUCER_FACE.setCommandSigningInfo(kc, kc.getDefaultCertificateName());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "Destroying producer face...");
+
         PRODUCER_FACE.shutdown();
     }
 }

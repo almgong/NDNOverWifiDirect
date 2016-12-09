@@ -114,7 +114,7 @@ public class VideoActivity extends AppCompatActivity {
             startGettingVideo(currentPrefix);
             //simpleExoPlayerView.setUseController(false);    // consumers use a different controller
 
-            // TODO bind the seekbar for consumers
+            // should bind the seekbar for consumers
             player.setPlayWhenReady(true);
         }
 
@@ -161,8 +161,6 @@ public class VideoActivity extends AppCompatActivity {
         }
 
         player.release();
-        //mController.startDiscoveringPeers();
-        //mController.startProbing();
     }
 
     // helpers
@@ -187,6 +185,7 @@ public class VideoActivity extends AppCompatActivity {
         Log.d(TAG, "REGISTERING VIDEO PREFIX FOR SHARING...");
         //Face mFace = mController.getLocalHostFace();
         Face mFace = ProducerActivity.PRODUCER_FACE;
+
 
         try {
             ras = new RandomAccessFile(bundle.getString("videoUri"), "r");

@@ -60,13 +60,13 @@ public class ProbeTask extends AsyncTask<Void, Void, Void> {
                         String[] prefixArr = prefix.split("/");
 
                         if (prefix.startsWith(NDNController.PROBE_PREFIX) && !prefixArr[prefixArr.length - 1].equals(WDBroadcastReceiver.myAddress)) {
-                            System.out.println("someone else's localhop prefix found!");
-                            System.out.println(entry.getPrefix().toString());
+                            Log.i(TAG, "someone else's localhop prefix found!");
+                            Log.i(TAG, entry.getPrefix().toString());
 
                             // send interest to this peer
                             Interest interest = new Interest(new Name(prefix + "/" + WDBroadcastReceiver.myAddress + "/probe?" + System.currentTimeMillis()));
                             interest.setMustBeFresh(true);
-                            System.err.println("Sending interest: " + interest.getName().toString());
+                            Log.i(TAG, "Sending interest: " + interest.getName().toString());
                             mFace.expressInterest(interest, new OnData() {
                                 @Override
                                 public void onData(Interest interest, Data data) {
