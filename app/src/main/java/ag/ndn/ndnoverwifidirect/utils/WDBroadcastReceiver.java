@@ -42,6 +42,8 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
     public static String groupOwnerAddress;
     public static String myAddress;
 
+    private static final String TAG = "WDBroadcastReceiver";
+
     private WifiP2pManager mManager;
     private WifiP2pManager.Channel mChannel;
 
@@ -110,6 +112,7 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
 
                         // now go ahead and add as many peers as possible
                         Set<String> connectedPeers = mController.getConnectedPeers();
+                        Log.d(TAG, "Number of peers that can be added: " + newPeers.size());
                         for (String peerMacAddr : newPeers.keySet()) {
 
                             WifiP2pDevice device = newPeers.get(peerMacAddr);

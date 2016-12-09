@@ -18,18 +18,19 @@ import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
 
 import java.util.HashMap;
 import java.util.Set;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
 import ag.ndn.ndnoverwifidirect.callback.ProbeOnInterest;
 import ag.ndn.ndnoverwifidirect.model.Peer;
+import ag.ndn.ndnoverwifidirect.runnable.DiscoverPeersRunnable;
+import ag.ndn.ndnoverwifidirect.runnable.ProbeRunnable;
 import ag.ndn.ndnoverwifidirect.service.WDBroadcastReceiverService;
-import ag.ndn.ndnoverwifidirect.task.DiscoverPeersTask;
 import ag.ndn.ndnoverwifidirect.task.FaceCreateTask;
-import ag.ndn.ndnoverwifidirect.task.ProbeTask;
 import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
 import ag.ndn.ndnoverwifidirect.task.RibRegisterPrefixTask;
-
-import static android.R.attr.max;
 
 /**
  * New streamlined NDNOverWifiDirect controller. One instance exists
@@ -50,6 +51,8 @@ public class NDNController {
     public static final String DATA_PREFIX = "/ndn/wifidirect";
 
     private static final String TAG = "NDNController";
+    private static final int DISCOVER_PEERS_DELAY = 10000;  // in ms
+    private static final int PROBE_DELAY = 5000;            // in ms
     private static final int MAX_PEERS = 5;
 
     // singleton
@@ -61,9 +64,11 @@ public class NDNController {
     private Context wifiDirectContext = null;       // context in which WiFi direct operations begin (the activity/fragment)
 
     // shared members (GO and Non-GO)
-    private DiscoverPeersTask discoverPeersTask = null;
-    private ProbeTask probeTask = null;
     private WDBroadcastReceiverService brService = null;
+    private Future discoverPeersFuture = null;
+    private Future probeFuture = null;
+    private ScheduledThreadPoolExecutor discoverProbeExecutor;
+
     private boolean hasRegisteredOwnLocalhop = false;
     private boolean isGroupOwner = false;       // set in broadcast receiver, defaulted to false, used primarily in ProbeOnInterest
     private boolean protocolRunning = false;    // whether the tasks/services of this protocol are reported running
@@ -74,16 +79,12 @@ public class NDNController {
     //private HashMap<String, Set<String>> peersPrefixMap = new HashMap<>(); // { peerIp:{data prefix names},... }
     private HashMap<String, Integer> peersMap = new HashMap<>();    // { peerIp:faceId }
 
-    // GO specific members
-
-    // NON-GO specific members
-
-
     private NDNController() {
         try {
             KeyChain kc = buildTestKeyChain();
             mFace.setCommandSigningInfo(kc, kc.getDefaultCertificateName());
             connectedPeers = new HashMap<>(MAX_PEERS);
+            discoverProbeExecutor = new ScheduledThreadPoolExecutor(1); // need at least one thread
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -115,10 +116,19 @@ public class NDNController {
         }
     }
 
+    /**
+     * Returns the MAC addresses of all currently connected peers.
+     * @return Set of MAC addresses
+     */
     public Set<String> getConnectedPeers() {
         return connectedPeers.keySet();
     }
 
+    /**
+     * Given a MAC address, return all logged peer information, if any.
+     * @param deviceAddress MAC address of peer
+     * @return Peer instance containing information of this peer.
+     */
     public Peer getPeerByDeviceAddress(String deviceAddress) {
         return connectedPeers.get(deviceAddress);
     }
@@ -173,7 +183,7 @@ public class NDNController {
 
     /**
      * Initializes the WifiP2p context, channel and manager, for use with discovering peers.
-     * This must be done before starting DiscoverPeersTask.
+     * This must be done before ever calling discoverPeers().
      * @param wifiP2pManager
      * @param channel
      */
@@ -233,7 +243,7 @@ public class NDNController {
         if (peersMap.containsValue(faceId)) {
             try {
                 for (String prefix : prefixes) {
-                    Log.d(TAG, "actually creating the task and running it now!!!@@@@@@" + prefix);
+                    Log.d(TAG, "actually creating the task and running it now: " + prefix);
                     RibRegisterPrefixTask task = new RibRegisterPrefixTask(prefix, faceId,
                             0, true, false);
                     task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR); // no blocking of other async tasks
@@ -250,12 +260,11 @@ public class NDNController {
      * to them.
      */
     public void startDiscoveringPeers() {
-        if (discoverPeersTask == null) {
-            Log.d(TAG, "startDiscoveringPeers()");
-            discoverPeersTask = new DiscoverPeersTask();
-            discoverPeersTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        if (discoverPeersFuture == null) {
+            Log.d(TAG, "Start discovering peers every " + DISCOVER_PEERS_DELAY + "ms");
+            discoverPeersFuture = discoverProbeExecutor.scheduleWithFixedDelay(new DiscoverPeersRunnable(), 100, DISCOVER_PEERS_DELAY, TimeUnit.MILLISECONDS);
         } else {
-            Log.d(TAG, "Discovering peers task already running!");
+            Log.d(TAG, "Discovering peers already running!");
         }
     }
 
@@ -263,11 +272,10 @@ public class NDNController {
      * Stops discovering peers periodically.
      */
     public void stopDiscoveringPeers() {
-
-        if (discoverPeersTask != null) {
-            discoverPeersTask.stop();
-            discoverPeersTask = null;
-            Log.d(TAG, "Stopped DiscoveringPeersTask.");
+        if (discoverPeersFuture != null) {
+            discoverPeersFuture.cancel(false);  // don't interrupt the execution, but stop further discovery
+            discoverPeersFuture = null;
+            Log.d(TAG, "Stopped discovering peers.");
         }
     }
 
@@ -275,9 +283,9 @@ public class NDNController {
      * Begins probing the network for data prefixes.
      */
     public void startProbing() {
-        if (probeTask == null) {
-            probeTask = new ProbeTask();
-            probeTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        if (probeFuture == null) {
+            Log.d(TAG, "Start probing for data prefixes every " + PROBE_DELAY + "ms");
+            probeFuture = discoverProbeExecutor.scheduleWithFixedDelay(new ProbeRunnable(), 200, PROBE_DELAY, TimeUnit.MILLISECONDS);
         } else {
             Log.d(TAG, "Probing task already running!");
         }
@@ -287,12 +295,16 @@ public class NDNController {
      * Stops probing the network for data prefixes.
      */
     public void stopProbing() {
-        if (probeTask != null) {
-            probeTask.stop();
-            probeTask = null;
+        if (probeFuture != null) {
+            probeFuture.cancel(false);  // don't interrupt execution, but stop further probing
+            probeFuture = null;
+            Log.d(TAG, "Probing stopped.");
         }
     }
 
+    /**
+     * Starts service that registers the broadcast receiver for handling peer discovery
+     */
     public void startBroadcastReceiverService() {
         if (brService == null) {
             Log.d(TAG, "Starting WDBR service...");
@@ -304,6 +316,9 @@ public class NDNController {
         }
     }
 
+    /**
+     * Stops the service that registers the broadcast recevier for handling peer discovery.
+     */
     public void stopBroadcastReceiverService() {
         if (brService == null) {
             Log.d(TAG, "BroadcastReceiverService not running, no need to stop.");
@@ -311,30 +326,6 @@ public class NDNController {
             Log.d(TAG, "Stopping WDBR service.");
             brService.stopSelf();
             brService = null;
-        }
-    }
-
-    /**
-     * Toggles the state of probing and disovering
-     * peers. Internally, this is equivalent to
-     * manually starting or stopping both tasks.
-     * Great for binding to, I don't know, a toggle
-     * button.
-     *
-     * @return true if both tasks are now running, false otherwise
-     */
-    public boolean toggleDiscoverAndProbe() {
-        if (probeTask == null) {
-            // we will treat this as meaning both are not active
-            startDiscoveringPeers();
-            startProbing();
-            startBroadcastReceiverService();
-            return true;
-        } else {
-            stopDiscoveringPeers();
-            stopProbing();
-            stopBroadcastReceiverService();
-            return false;
         }
     }
 
