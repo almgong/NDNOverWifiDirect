@@ -14,7 +14,6 @@ import net.named_data.jndn.OnTimeout;
 import java.io.IOException;
 import java.util.Arrays;
 
-import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayer;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
 
@@ -41,7 +40,6 @@ public class GetVideoTask extends AsyncTask<String, Void, Void> {
     //private Face mFace = NDNController.getInstance().getLocalHostFace();
 
     private OnData onDataReceived;  // OnData callback when data is received
-    private SendInterestTask currentSendInterestTask;
 
     public GetVideoTask(VideoPlayerBuffer buffer, Context activity) {
         this.buffer = buffer;

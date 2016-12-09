@@ -4,12 +4,10 @@ import android.util.Log;
 
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Interest;
-import net.named_data.jndn.Name;
 
 import java.util.Arrays;
 
 import ag.ndn.ndnoverwifidirect.callback.NDNCallbackOnData;
-import ag.ndn.ndnoverwifidirect.task.SendInterestTask;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayer;
 import ag.ndn.ndnoverwifidirect.videosharing.VideoPlayerBuffer;
 import ag.ndn.ndnoverwifidirect.videosharing.task.GetVideoTask;
