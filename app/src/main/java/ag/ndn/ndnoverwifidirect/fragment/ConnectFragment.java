@@ -1,8 +1,6 @@
 package ag.ndn.ndnoverwifidirect.fragment;
 
 import android.app.Activity;
-import android.content.Context;
-import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -17,20 +15,13 @@ import android.widget.CompoundButton;
 import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.ToggleButton;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import ag.ndn.ndnoverwifidirect.ConnectActivity;
 import ag.ndn.ndnoverwifidirect.R;
-import ag.ndn.ndnoverwifidirect.model.Peer;
-import ag.ndn.ndnoverwifidirect.service.WDBroadcastReceiverService;
-import ag.ndn.ndnoverwifidirect.utils.IPAddress;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
-
-import static android.content.ContentValues.TAG;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -39,9 +30,6 @@ import static android.content.ContentValues.TAG;
  * to handle interaction events.
  * Use the {@link ConnectFragment#newInstance} factory method to
  * create an instance of this fragment.
- *
- * Expects that the parent activity has a getReciever() method to
- * pass in a WDBroadcastReceiver.
  */
 public class ConnectFragment extends Fragment {
     private static final String TAG = "ConnectFragment";

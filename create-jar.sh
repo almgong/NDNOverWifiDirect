@@ -2,7 +2,6 @@
 
 ###
 #  MOVE THIS FILE to app/build/intermediates/debug/classes and then execute.
-#
 ###
 
 #create a jar called ndn-over-wifid.jar

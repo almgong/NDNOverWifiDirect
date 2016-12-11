@@ -40,6 +40,15 @@ import ag.ndn.ndnoverwifidirect.task.RibRegisterPrefixTask;
  * 2. GO's will keep track of Faces to peers (faceIds), while non-GO
  * effectively have a single face to GO
  *
+ * To integrate:
+ * First, make sure to add a line in the Manifest declaring WDBroadcastReceiverService (see this project's manifest for example).
+ * While you are at the Manifest file, add the permissions wrapped in "wifid" comments found in this project's manifest.
+ *
+ * 1. Import ag.ndn.ndnoverwifidirect.utils.NDNController (this) as necessary.
+ * 2. call setWifiDirectContext(), and set the context in which you start peer discovery (e.g. the fragment with the switch)
+ * 3. call NDNController.getInstance().start/stopBroadcastReceiverService() as necessary
+ * 4. call NDNController.getInstance().start/stopDiscoverAndProbe() as necessary.
+ *
  * Created by allengong on 10/23/16.
  */
 
@@ -298,7 +307,7 @@ public class NDNController {
         if (probeFuture != null) {
             probeFuture.cancel(false);  // don't interrupt execution, but stop further probing
             probeFuture = null;
-            Log.d(TAG, "Probing stopped.");
+            Log.d(TAG, "Stopped probing.");
         }
     }
 
@@ -323,9 +332,9 @@ public class NDNController {
         if (brService == null) {
             Log.d(TAG, "BroadcastReceiverService not running, no need to stop.");
         } else {
-            Log.d(TAG, "Stopping WDBR service.");
             brService.stopSelf();
             brService = null;
+            Log.d(TAG, "Stopped WDBR service.");
         }
     }
 
