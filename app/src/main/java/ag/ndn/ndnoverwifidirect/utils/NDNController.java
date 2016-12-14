@@ -363,6 +363,11 @@ public class NDNController {
         protocolRunning = false;
     }
 
+    /**
+     * Temporary method, really just used for the demo: see ConnectFragment.java.
+     * @return whether the last call was a call to startDiscoverAndProbe() as opposed
+     * to stopDiscoverAndProbe().
+     */
     public boolean isProtocolRunning() {
         return protocolRunning;
     }

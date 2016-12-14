@@ -69,11 +69,9 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
             int state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
             if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
                 // Wifi P2P is enabled
-
                 Log.d(TAG, "WIFI IS ENABLED");
             } else {
                 // Wi-Fi P2P is not enabled
-
                 Log.d(TAG, "WIFI IS NOT ENABLED");
             }
 
@@ -208,9 +206,6 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                             // create UDP face towards GO, with callback to register /localhop/... prefix
                             mController.createFace(groupOwnerAddress, NDNController.URI_TCP_PREFIX, cb);
                         }
-
-                        //Log.d(TAG, "@@@ OK, restart discovering peers.");
-                        //NDNController.getInstance().startDiscoveringPeers();
                     }
                 });
             }
@@ -218,6 +213,18 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
         } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
             // Respond to this device's wifi state changing
             Log.d(TAG, "wifi state changed check");
+        } else if (WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION.equals(action)) {
+            // if discovery (scanning) has either stopped or resumed
+            switch(intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1)) {
+                case WifiP2pManager.WIFI_P2P_DISCOVERY_STARTED:
+                    Log.d(TAG, "Wifip2p discovery started.");
+                    break;
+                case WifiP2pManager.WIFI_P2P_DISCOVERY_STOPPED:
+                    Log.d(TAG, "Wifipsp discovery stopped.");
+                    break;
+                default:
+                    Log.d(TAG, "WIFI_P2P_DISCOVERY_CHANGED_ACTION returned other reason.");
+            }
         }
     }
 
