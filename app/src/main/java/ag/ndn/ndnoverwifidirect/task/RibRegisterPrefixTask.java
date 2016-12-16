@@ -47,8 +47,6 @@ public class RibRegisterPrefixTask extends AsyncTask<String, Void, Integer> {
                             .setCost(cost)
                             .setForwardingFlags(flags));
 
-            //NDNController.getInstance().getNfdcHelper().ribRegisterPrefix(new Name(prefixToRegister),
-            //        faceId, cost, childInherit, capture);
             Log.d(TAG, "registered rib prefix: " + prefixToRegister);
         } catch (Exception e) {
             e.printStackTrace();

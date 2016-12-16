@@ -22,7 +22,7 @@ import ag.ndn.ndnoverwifidirect.utils.NDNController;
  *
  * Created by allengong on 7/31/16.
  */
-public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
+public class RegisterPrefixTask extends AsyncTask<String, Void, Void> {
 
     private final String TAG = "RegisterPrefixTask";
 
@@ -82,9 +82,8 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
 
     }
 
-    // hardcoded responses for now
     @Override
-    protected Integer doInBackground(String... params) {
+    protected Void doInBackground(String... params) {
         try {
 
             // allow child inherit
@@ -93,7 +92,7 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
 
             Name prefix = new Name(prefixToRegister);
 
-           long prefixId = mFace.registerPrefix(prefix, onInterestCallback,
+           mFace.registerPrefix(prefix, onInterestCallback,
                     new OnRegisterFailed() {
                         @Override
                         public void onRegisterFailed(Name prefix) {
@@ -123,6 +122,6 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Integer> {
             e.printStackTrace();
         }
 
-        return 0;
+        return null;
     }
 }

@@ -104,7 +104,7 @@ public class ProducerActivity extends AppCompatActivity {
                 Intent intent = new Intent(ProducerActivity.this, VideoActivity.class);
                 intent.putExtra("videoUri", videoNameLocationMap.get(desiredVideo.getVideoName()));
                 intent.putExtra("isLocal", true);
-                intent.putExtra("prefix", NDNController.DATA_PREFIX + VideoActivity.NDN_VIDEO_PREFIX +
+                intent.putExtra("prefix", VideoActivity.DATA_PREFIX + VideoActivity.NDN_VIDEO_PREFIX +
                         "/" + NDNSanitizer.sanitizeName(desiredVideo.getVideoName()));
                 startActivity(intent);
             }

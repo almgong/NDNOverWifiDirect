@@ -9,18 +9,19 @@ import android.location.Address;
  */
 public class Peer {
 
-    private String id;
-    private String deviceAddress;
-    private String name;
+    // members
+    private String deviceAddress;   // device address
+    private String name;            // user-friendly device name
+    private int faceId;
+    private int numProbeTimeouts = 0;   // number of timeouts while probing prefixes from this peer
 
     public Peer() {}
 
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
+    public Peer(String deviceAddress, String name, int faceId, int numProbeTimeouts) {
+        this.deviceAddress = deviceAddress;
+        this.name = name;
+        this.faceId = faceId;
+        this.numProbeTimeouts = numProbeTimeouts;
     }
 
     public String getDeviceAddress() {
@@ -39,11 +40,29 @@ public class Peer {
         this.name = name;
     }
 
+    public int getFaceId() {
+        return faceId;
+    }
+
+    public void setFaceId(int faceId) {
+        this.faceId = faceId;
+    }
+
+    public int getNumProbeTimeouts() {
+        return numProbeTimeouts;
+    }
+
+    public void setNumProbeTimeouts(int numProbeTimeouts) {
+        this.numProbeTimeouts = numProbeTimeouts;
+    }
+
     @Override
     public String toString() {
         return "Peer{" +
-                "id='" + id + '\'' +
                 ", deviceAddress='" + deviceAddress + '\'' +
+                ", name='" + name + '\'' +
+                ", faceId=" + faceId +
+                ", numProbeTimeouts=" + numProbeTimeouts +
                 '}';
     }
 }

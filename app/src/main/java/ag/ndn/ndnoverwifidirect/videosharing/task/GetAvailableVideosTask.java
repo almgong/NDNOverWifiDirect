@@ -48,7 +48,7 @@ public class GetAvailableVideosTask extends AsyncTask <Integer, Void, Integer> {
 
         try {
             // we are specifically looking for video data prefixes
-            String relevantPrefix = NDNController.DATA_PREFIX + VideoActivity.NDN_VIDEO_PREFIX;
+            String relevantPrefix = VideoActivity.DATA_PREFIX + VideoActivity.NDN_VIDEO_PREFIX;
 
             List<FibEntry> fibEntries = Nfdc.getFibList(NDNController.getInstance().getLocalHostFace());
 

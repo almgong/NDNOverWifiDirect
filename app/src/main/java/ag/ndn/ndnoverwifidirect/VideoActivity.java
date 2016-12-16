@@ -34,7 +34,8 @@ import ag.ndn.ndnoverwifidirect.videosharing.task.GetVideoTask;
 
 public class VideoActivity extends AppCompatActivity {
 
-    // meant to be between /ndn/wifidirect and /some-video-name
+    // the prefix for data that this video app expects
+    public static final String DATA_PREFIX = "/ndn/wifidirect";
     public static final String NDN_VIDEO_PREFIX = "/video";
 
     private static final String TAG = "VideoActivity";

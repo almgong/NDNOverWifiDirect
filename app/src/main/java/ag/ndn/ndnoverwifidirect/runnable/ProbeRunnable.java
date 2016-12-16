@@ -11,11 +11,13 @@ import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
+import net.named_data.jndn.OnTimeout;
 
 import java.io.IOException;
 import java.util.List;
 
 import ag.ndn.ndnoverwifidirect.callback.ProbeOnData;
+import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
 
@@ -26,6 +28,7 @@ import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
 
 public class ProbeRunnable implements Runnable {
     private static final String TAG = "ProbeRunnable";
+    private final int MAX_TIMEOUTS_ALLOWED = 5;
 
     private Face mFace = NDNController.getInstance().getLocalHostFace();
 
@@ -41,20 +44,40 @@ public class ProbeRunnable implements Runnable {
                 // look only for the ones related to /localhop/wifidirect/xxx
                 for (FibEntry entry : fibEntries) {
                     String prefix = entry.getPrefix().toString();
-                    String[] prefixArr = prefix.split("/");
-
+                    final String[] prefixArr = prefix.split("/");
                     if (prefix.startsWith(NDNController.PROBE_PREFIX) && !prefixArr[prefixArr.length - 1].equals(WDBroadcastReceiver.myAddress)) {
-                        Log.i(TAG, "someone else's localhop prefix found!");
-                        Log.i(TAG, entry.getPrefix().toString());
+                        Log.d(TAG, "Someone else's localhop prefix found!");
+                        Log.d(TAG, entry.getPrefix().toString());
 
                         // send interest to this peer
                         Interest interest = new Interest(new Name(prefix + "/" + WDBroadcastReceiver.myAddress + "/probe?" + System.currentTimeMillis()));
                         interest.setMustBeFresh(true);
-                        Log.i(TAG, "Sending interest: " + interest.getName().toString());
+                        Log.d(TAG, "Sending interest: " + interest.getName().toString());
                         mFace.expressInterest(interest, new OnData() {
                             @Override
                             public void onData(Interest interest, Data data) {
                                 (new ProbeOnData()).doJob(interest, data);
+                            }
+                        }, new OnTimeout() {
+                            @Override
+                            public void onTimeout(Interest interest) {
+                                Peer peer = NDNController.getInstance().getPeerByIp(prefixArr[prefixArr.length-1]);
+                                if (peer == null) {
+                                    Log.d(TAG, "No peer information available to track timeout.");
+                                    return;
+                                }
+
+                                Log.d(TAG, "Timeout for interest: " + interest.getName().toString() +
+                                        " Attempts: " + peer.getNumProbeTimeouts());
+
+                                if (peer.getNumProbeTimeouts() + 1 > MAX_TIMEOUTS_ALLOWED) {
+                                    // declare peer as disconnected from group
+                                    NDNController.getInstance().removePeer(prefixArr[prefixArr.length-1]);
+                                } else {
+                                    peer.setNumProbeTimeouts(peer.getNumProbeTimeouts()+1);
+                                }
+
+
                             }
                         }); // no timeout handling - possibly we could track number of timeouts, at 'x' nums, remove the peer's prefixes
                     }

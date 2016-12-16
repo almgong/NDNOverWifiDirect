@@ -75,7 +75,8 @@ public class ProbeOnInterest implements NDNCallBackOnInterest {
             if (mController.getIsGroupOwner()) {
                 // if GO, return all data prefixes
                 for (FibEntry fibEntry : fibEntries) {
-                    if (fibEntry.getPrefix().toString().startsWith(NDNController.DATA_PREFIX)) {
+                    //if (fibEntry.getPrefix().toString().startsWith(NDNController.DATA_PREFIX)) {
+                    if (!fibEntry.getPrefix().toString().startsWith("/localhop")) {
                         prefixesToReturn.add(fibEntry.getPrefix().toString());
                         num++;
                     }
@@ -91,11 +92,11 @@ public class ProbeOnInterest implements NDNCallBackOnInterest {
                 }
                 faceStatuses = null;    // gc
 
-                // return only those prefixes that can be handled locally
+                // return only those prefixes that are handled locally
                 for (FibEntry fibEntry : fibEntries) {
-                    if (fibEntry.getPrefix().toString().startsWith(NDNController.DATA_PREFIX)) {
-
-                        // added constraint that the prefix can be served from this device (e.g.
+                    //if (fibEntry.getPrefix().toString().startsWith(NDNController.DATA_PREFIX)) {
+                    if (!fibEntry.getPrefix().toString().startsWith("/localhop")) {
+                        // added constraint that the prefix must be be served from this device (e.g.
                         // by an upper layer application)
                         List<NextHopRecord> nextHopRecords = fibEntry.getNextHopRecords();
                         for (NextHopRecord nextHopRecord : nextHopRecords) {

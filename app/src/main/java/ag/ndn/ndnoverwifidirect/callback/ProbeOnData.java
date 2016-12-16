@@ -64,7 +64,8 @@ public class ProbeOnData implements NDNCallbackOnData {
         try {
             List<FibEntry> fibEntries = Nfdc.getFibList(mFace);
             for (FibEntry fibEntry : fibEntries) {
-                if (fibEntry.getPrefix().toString().startsWith(NDNController.DATA_PREFIX)) {
+                //if (fibEntry.getPrefix().toString().startsWith(NDNController.DATA_PREFIX)) {
+                if (!fibEntry.getPrefix().toString().startsWith("/localhop")) {
                     List<NextHopRecord> nextHopRecords = fibEntry.getNextHopRecords();
                     for (NextHopRecord nextHopRecord : nextHopRecords) {
                         if (nextHopRecord.getFaceId() == peerFaceId) {

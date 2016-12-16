@@ -9,6 +9,7 @@ import com.intel.jndn.management.Nfdc;
 import net.named_data.jndn_xx.util.FaceUri;
 
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
+import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 
 /**
@@ -37,23 +38,20 @@ public class FaceCreateTask extends AsyncTask<String, Void, Integer> {
         int faceId = -1;
 
         try {
-            System.out.println("-------- Inside face create task --------");
+            Log.d(TAG, "-------- Inside face create task --------");
 
-            //faceId = mController.faceCreate(faceUris[0]);
-            //faceId = mController.getNfdcHelper().faceCreate(faceUris[0]);
             faceId = Nfdc.createFace(mController.getLocalHostFace(),
                     new FaceUri(faceUris[0]).canonize().toString());
 
-            // piggyback registering desired prefixes -- deprecated, supply a callback instead
-            //mController.ribRegisterPrefix(faceId, prefixesToRegister);
 
-            System.out.println("Successfully registered " + prefixesToRegister.length + " prefixes");
-
-            Log.d(TAG, "!!!Created face with face id: " + faceId);
+            Log.d(TAG, "Successfully registered " + prefixesToRegister.length + " prefixes");
+            Log.d(TAG, "Created Face with Face id: " + faceId);
             if (faceId != -1) {
-                // if face creation successful, log it
 
-                mController.logPeer(peerIp, faceId);
+                // if face creation successful, log the new peer
+                Peer peer = new Peer();
+                peer.setFaceId(faceId);
+                mController.logPeer(peerIp, peer);
 
                 // invoke callback, if any
                 if (callback != null) {
@@ -67,8 +65,7 @@ public class FaceCreateTask extends AsyncTask<String, Void, Integer> {
             Log.e(TAG, e.getMessage());
         }
 
-
-        System.out.println("---------- END face create task -----------");
+        Log.d(TAG, "---------- END face create task -----------");
 
         return faceId;
     }

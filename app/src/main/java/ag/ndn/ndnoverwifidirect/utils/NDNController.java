@@ -17,6 +17,7 @@ import net.named_data.jndn.security.identity.MemoryIdentityStorage;
 import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -29,6 +30,7 @@ import ag.ndn.ndnoverwifidirect.runnable.DiscoverPeersRunnable;
 import ag.ndn.ndnoverwifidirect.runnable.ProbeRunnable;
 import ag.ndn.ndnoverwifidirect.service.WDBroadcastReceiverService;
 import ag.ndn.ndnoverwifidirect.task.FaceCreateTask;
+import ag.ndn.ndnoverwifidirect.task.FaceDestroyTask;
 import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
 import ag.ndn.ndnoverwifidirect.task.RibRegisterPrefixTask;
 
@@ -57,11 +59,11 @@ public class NDNController {
     public static final String URI_UDP_PREFIX = "udp://";
     public static final String URI_TCP_PREFIX = "tcp://";
     public static final String PROBE_PREFIX = "/localhop/wifidirect";   // prefix used in probe handling
-    public static final String DATA_PREFIX = "/ndn/wifidirect";
+    //public static final String DATA_PREFIX = "/ndn/wifidirect";
 
     private static final String TAG = "NDNController";
-    private static final int DISCOVER_PEERS_DELAY = 10000;  // in ms
-    private static final int PROBE_DELAY = 5000;            // in ms
+    private static final int DISCOVER_PEERS_DELAY = 12000;  // in ms
+    private static final int PROBE_DELAY = 5000;           // in ms
     private static final int MAX_PEERS = 5;
 
     // singleton
@@ -79,14 +81,15 @@ public class NDNController {
     private ScheduledThreadPoolExecutor discoverProbeExecutor;
 
     private boolean hasRegisteredOwnLocalhop = false;
-    private boolean isGroupOwner = false;       // set in broadcast receiver, defaulted to false, used primarily in ProbeOnInterest
-    private boolean protocolRunning = false;    // whether the tasks/services of this protocol are reported running
-    private HashMap<String, Peer> connectedPeers;
+    private boolean isGroupOwner = false;           // set in broadcast receiver, defaulted to false, used primarily in ProbeOnInterest
+    private boolean protocolRunning = false;        // whether the tasks/services of this protocol are reported running
+
+    // we have some redundancy here in data, but difficult to avoid given WFDirect API
+    // exposes only MAC addresses at the connect stage
+    private HashMap<String, Peer> connectedPeers;                   // { deviceAddress(MAC) : PeerInstance, ... }
+    private HashMap<String, Peer> peersMap = new HashMap<>();       // { peerIp : PeerInstance }
 
     private final Face mFace = new Face("localhost"); // single face instance at localhost, not to be used outside of this class
-
-    //private HashMap<String, Set<String>> peersPrefixMap = new HashMap<>(); // { peerIp:{data prefix names},... }
-    private HashMap<String, Integer> peersMap = new HashMap<>();    // { peerIp:faceId }
 
     private NDNController() {
         try {
@@ -110,9 +113,8 @@ public class NDNController {
 
     /**
      * Attempts to add a peer to a rolling list of connected peers, up to MAX_PEERS amount.
-     *
      * @param peer
-     * @return true if addition was successful, false otherwise (e.g. max peers number reached).
+     * @return true if addition was successful, false otherwise (max peers number reached).
      */
     public boolean logConnectedPeer(Peer peer) {
         if (connectedPeers.size() < MAX_PEERS) {
@@ -148,11 +150,14 @@ public class NDNController {
 
     // shared methods
 
-    // returns faceId of face towards the given peer
-    // returns -1 if no mapping exists for this peer
+    /**
+     * Returns the Face id associated with the given peer, denoted by IP address.
+     * @param peerIp The WiFi Direct IP address of the peer
+     * @return the Face id of the peer or -1 if no mapping exists.
+     */
     public int getFaceIdForPeer(String peerIp) {
         if (peersMap.containsKey(peerIp)) {
-            return peersMap.get(peerIp);
+            return peersMap.get(peerIp).getFaceId();
         }
 
         return -1;
@@ -160,18 +165,39 @@ public class NDNController {
 
     /**
      * Logs the peer with the corresponding faceId
-     * @param peerIp
-     * @param faceId
+     * @param peerIp The peer's WD IP address
+     * @param peer A Peer instance with at least FaceId set.
      * @return true if new peer was added to the map, else false
      */
-    public boolean logPeer(String peerIp, int faceId) {
+    public boolean logPeer(String peerIp, Peer peer) {
         if (peersMap.containsKey(peerIp)) {
             return false;
         }
 
-        peersMap.put(peerIp, faceId);
-
+        peersMap.put(peerIp, peer);
         return true;
+    }
+
+    /**
+     * Returns the logged peer instance (via logPeer()) by its
+     * WiFi Direct IP address.
+     * @param ip WiFi Direct IP address of peer
+     * @return the peer instance logged earlier by a call to logPeer(), or null
+     * if none.
+     */
+    public Peer getPeerByIp(String ip) {
+        return peersMap.get(ip);
+    }
+
+    /**
+     * Removes mapping to the logged peer, and destroys any state of that peer (e.g. any created
+     * faces and registered prefixes).
+     * @param ip WiFi Direct IP address of peer
+     */
+    public void removePeer(String ip) {
+        FaceDestroyTask task = new FaceDestroyTask();
+        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, peersMap.get(ip).getFaceId());
+        peersMap.remove(ip);
     }
 
     /**
@@ -201,10 +227,14 @@ public class NDNController {
         this.channel = channel;
     }
 
+    /**
+     * Must be done before we can start the Broadcast Receiver Service -  in the future we can also
+     * move the starting to somewhere within an activity or fragment to avoid this.
+     * @param context A valid Android context
+     */
     public void setWifiDirectContext(Context context) {
         this.wifiDirectContext = context;
     }
-
 
     /**
      * Creates a face to the specified peer (IP), with the
@@ -214,7 +244,8 @@ public class NDNController {
      *
      * @param peerIp
      * @param uriPrefix
-     * @param callback An implementation of GenericCallback, or null.
+     * @param callback An implementation of GenericCallback, or null. Is called AFTER face
+     *                 creation succeeds.
      */
     public void createFace(String peerIp, String uriPrefix, GenericCallback callback) {
 
@@ -240,7 +271,6 @@ public class NDNController {
         }
     }
 
-
     /**
      * Registers the array of prefixes with the given Face, denoted by
      * its face id.
@@ -249,7 +279,13 @@ public class NDNController {
      */
     public void ribRegisterPrefix(int faceId, String[] prefixes) {
         Log.d(TAG, "ribRegisterPrefix called with: " + faceId + " and " + prefixes.length + " prefixes");
-        if (peersMap.containsValue(faceId)) {
+
+        HashSet<Integer> faceIds = new HashSet<>(peersMap.size());
+        for (Peer p : peersMap.values()) {
+            faceIds.add(p.getFaceId());
+        }
+
+        if (faceIds.contains(faceId)) {
             try {
                 for (String prefix : prefixes) {
                     Log.d(TAG, "actually creating the task and running it now: " + prefix);

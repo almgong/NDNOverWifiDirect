@@ -39,8 +39,8 @@ import static android.content.ContentValues.TAG;
 
 public class WDBroadcastReceiver extends BroadcastReceiver {
 
-    public static String groupOwnerAddress;
-    public static String myAddress;
+    public static volatile String groupOwnerAddress;
+    public static volatile String myAddress;
 
     private static final String TAG = "WDBroadcastReceiver";
 
@@ -48,7 +48,6 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
     private WifiP2pManager.Channel mChannel;
 
     private NDNController mController;
-    private int maxPeers = 5;// max number of peers per group
 
     public WDBroadcastReceiver(WifiP2pManager manager, WifiP2pManager.Channel channel) {
         super();
@@ -110,7 +109,7 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
 
                         // now go ahead and add as many peers as possible
                         Set<String> connectedPeers = mController.getConnectedPeers();
-                        Log.d(TAG, "Number of peers that can be added: " + newPeers.size());
+                        Log.d(TAG, "Number of new peers that can be added: " + newPeers.size());
                         for (String peerMacAddr : newPeers.keySet()) {
 
                             WifiP2pDevice device = newPeers.get(peerMacAddr);
@@ -152,59 +151,59 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                 mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
                     @Override
                     public void onConnectionInfoAvailable(WifiP2pInfo info) {
-                        //(Toast.makeText(mActivity, "Successfully connected to group.", Toast.LENGTH_LONG)).show();
-
                         Log.d(TAG, "connection info is available!!");
 
-                        // group owner address
-                        groupOwnerAddress = info.groupOwnerAddress.getHostAddress();
+                        // check if group formation was successful
+                        if (info.groupFormed) {
 
-                        // this device's address, which is now available
-                        myAddress = IPAddress.getLocalIPAddress();
+                            // group owner address
+                            groupOwnerAddress = info.groupOwnerAddress.getHostAddress();
 
-                        if (!mController.getHasRegisteredOwnLocalhop()) {
-                            // do so now
-                            mController.registerOwnLocalhop();
-                            Log.d(TAG, "registerOwnLocalhop() called...");
-                        }
+                            // this device's address, which is now available
+                            myAddress = IPAddress.getLocalIPAddress();
+                            Log.d(TAG, "My WiFi Direct IP address is: " + myAddress);
 
-                        // After the group negotiation, we can determine the group owner.
-                        if (info.groupFormed && info.isGroupOwner) {
-                            // Do whatever tasks are specific to the group owner.
-                            // One common case is creating a server thread and accepting
-                            // incoming connections.
-
-                            Log.d(TAG, "I am the group owner... do nothing.");
-                            mController.setIsGroupOwner(true);
-
-                        } else if (info.groupFormed) {
-                            // The other device acts as the client. In this case,
-                            // you'll want to create a client thread that connects to the group
-                            // owner.
-                            Log.d(TAG, "I am not the group owner, and my ip is: " +
-                                    myAddress);
-
-                            mController.setIsGroupOwner(false);
-
-                            // skip if already part of this group
-                            if (mController.getFaceIdForPeer(groupOwnerAddress) != -1) {
-                                return;
+                            if (!mController.getHasRegisteredOwnLocalhop()) {
+                                // do so now
+                                mController.registerOwnLocalhop();
+                                Log.d(TAG, "registerOwnLocalhop() called...");
                             }
 
-                            // create a callback that will register the /localhop/wifidirect/<go-addr> prefix
-                            GenericCallback cb = new GenericCallback() {
-                                @Override
-                                public void doJob() {
-                                    Log.d(TAG, "registering " + NDNController.PROBE_PREFIX + "/" + groupOwnerAddress);
-                                    String[] prefixes = new String[1];
-                                    prefixes[0] = NDNController.PROBE_PREFIX + "/" + groupOwnerAddress;
-                                    mController.ribRegisterPrefix(mController.getFaceIdForPeer(groupOwnerAddress),
-                                            prefixes);
-                                }
-                            };
+                            if (info.isGroupOwner) {
+                                // Do whatever tasks are specific to the group owner.
+                                // One common case is creating a server thread and accepting
+                                // incoming connections.
+                                Log.d(TAG, "I am the group owner, do nothing.");
+                                mController.setIsGroupOwner(true);
+                            } else {
+                                // non group owner
+                                // The other device acts as the client. In this case,
+                                // you'll want to create a client thread that connects to the group
+                                // owner.
+                                Log.d(TAG, "I am not the group owner, create a face towards GO.");
 
-                            // create UDP face towards GO, with callback to register /localhop/... prefix
-                            mController.createFace(groupOwnerAddress, NDNController.URI_TCP_PREFIX, cb);
+                                mController.setIsGroupOwner(false);
+
+                                // skip if already part of this group
+                                if (mController.getFaceIdForPeer(groupOwnerAddress) != -1) {
+                                    return;
+                                }
+
+                                // create a callback that will register the /localhop/wifidirect/<go-addr> prefix
+                                GenericCallback cb = new GenericCallback() {
+                                    @Override
+                                    public void doJob() {
+                                        Log.d(TAG, "registering " + NDNController.PROBE_PREFIX + "/" + groupOwnerAddress);
+                                        String[] prefixes = new String[1];
+                                        prefixes[0] = NDNController.PROBE_PREFIX + "/" + groupOwnerAddress;
+                                        mController.ribRegisterPrefix(mController.getFaceIdForPeer(groupOwnerAddress),
+                                                prefixes);
+                                    }
+                                };
+
+                                // create UDP face towards GO, with callback to register /localhop/... prefix
+                                mController.createFace(groupOwnerAddress, NDNController.URI_TCP_PREFIX, cb);
+                            }
                         }
                     }
                 });
