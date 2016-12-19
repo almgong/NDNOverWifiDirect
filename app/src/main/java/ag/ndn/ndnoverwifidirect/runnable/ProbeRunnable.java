@@ -28,7 +28,7 @@ import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
 
 public class ProbeRunnable implements Runnable {
     private static final String TAG = "ProbeRunnable";
-    private final int MAX_TIMEOUTS_ALLOWED = 5;
+    private final int MAX_TIMEOUTS_ALLOWED = 10;
 
     private Face mFace = NDNController.getInstance().getLocalHostFace();
 
@@ -57,6 +57,8 @@ public class ProbeRunnable implements Runnable {
                             @Override
                             public void onData(Interest interest, Data data) {
                                 (new ProbeOnData()).doJob(interest, data);
+                                Peer peer = NDNController.getInstance().getPeerByIp(prefixArr[prefixArr.length-1]);
+                                peer.setNumProbeTimeouts(0);    // peer responded, so reset timeout counter
                             }
                         }, new OnTimeout() {
                             @Override
@@ -68,9 +70,9 @@ public class ProbeRunnable implements Runnable {
                                 }
 
                                 Log.d(TAG, "Timeout for interest: " + interest.getName().toString() +
-                                        " Attempts: " + peer.getNumProbeTimeouts());
+                                        " Attempts: " + (peer.getNumProbeTimeouts()+1));
 
-                                if (peer.getNumProbeTimeouts() + 1 > MAX_TIMEOUTS_ALLOWED) {
+                                if (peer.getNumProbeTimeouts() + 1 >= MAX_TIMEOUTS_ALLOWED) {
                                     // declare peer as disconnected from group
                                     NDNController.getInstance().removePeer(prefixArr[prefixArr.length-1]);
                                 } else {

@@ -12,7 +12,9 @@ import net.named_data.jndn.OnInterestCallback;
 import net.named_data.jndn.OnRegisterFailed;
 import net.named_data.jndn.OnRegisterSuccess;
 
+import ag.ndn.ndnoverwifidirect.utils.IPAddress;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
+import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
 
 /**
  * Provides ability to register one to the specified face.
@@ -30,7 +32,7 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Void> {
     private OnInterestCallback onInterestCallback;
 
     private String prefixToRegister;
-    private boolean mStopProcessing, handleForever;
+    private boolean mStopProcessing, handleForever, isRegisteringOwnLocalhop = false;
 
     private long processEventsTimer = 500;  // by default, every half second, process events
     private int attemptNum = 1;             // for re-attempting to register a prefix (in case of timeout)
@@ -72,6 +74,12 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Void> {
                         @Override
                         public void onRegisterSuccess(Name prefix, long registeredPrefixId) {
                             Log.d(TAG, "Prefix registered successfully: " + prefixToRegister);
+
+                            // if it is the case that we are registering the localhop prefix
+                            // for this device, tell Controller that it was successful
+                            if (isRegisteringOwnLocalhop) {
+                                NDNController.getInstance().setHasRegisteredOwnLocalhop(true);
+                            }
                         }
                     },
                     flags);
@@ -85,6 +93,35 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Void> {
     @Override
     protected Void doInBackground(String... params) {
         try {
+            // precaution, only applicable if registering own /localhop
+            if (prefixToRegister.startsWith(NDNController.PROBE_PREFIX)) {
+                isRegisteringOwnLocalhop = true;
+
+                // we must have a valid WiFiDirect IP to proceed, sometimes
+                // there is a delay in setting it up framework-wise. This is an added precaution.
+                int maxAttempts = 5;
+                int attempt = 0;
+                while(WDBroadcastReceiver.myAddress == null && attempt < maxAttempts) {
+                    try {
+                        Thread.sleep(1000);
+                        WDBroadcastReceiver.myAddress = IPAddress.getLocalIPAddress();
+                        Log.d(TAG, "[NULL IP] Registering own localhop attempt: " + (++attempt) +
+                                " IP Address is: " + WDBroadcastReceiver.myAddress);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                // if it is still null, DO NOT proceed to register
+                if (WDBroadcastReceiver.myAddress == null) {
+                    Log.e(TAG, "There was an issue with registering own localhop.");
+                    return null;
+                } else {
+                    // we have a valid IP now, use it.
+                    prefixToRegister = NDNController.PROBE_PREFIX + "/" +
+                            WDBroadcastReceiver.myAddress;
+                }
+            }
 
             // allow child inherit
             final ForwardingFlags flags = new ForwardingFlags();
@@ -103,6 +140,12 @@ public class RegisterPrefixTask extends AsyncTask<String, Void, Void> {
                         @Override
                         public void onRegisterSuccess(Name prefix, long registeredPrefixId) {
                             Log.d(TAG, "Prefix registered successfully: " + prefixToRegister);
+
+                            // if it is the case that we are registering the localhop prefix
+                            // for this device, tell Controller that it was successful
+                            if (isRegisteringOwnLocalhop) {
+                                NDNController.getInstance().setHasRegisteredOwnLocalhop(true);
+                            }
                         }
                     },
                     flags);

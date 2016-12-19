@@ -65,16 +65,21 @@ public class ProbeOnData implements NDNCallbackOnData {
             List<FibEntry> fibEntries = Nfdc.getFibList(mFace);
             for (FibEntry fibEntry : fibEntries) {
                 //if (fibEntry.getPrefix().toString().startsWith(NDNController.DATA_PREFIX)) {
-                if (!fibEntry.getPrefix().toString().startsWith("/localhop")) {
+                String fibEntryPrefix = fibEntry.getPrefix().toString();
+                if (!fibEntryPrefix.startsWith("/localhop") && !fibEntryPrefix.startsWith("/localhost")) {
                     List<NextHopRecord> nextHopRecords = fibEntry.getNextHopRecords();
                     for (NextHopRecord nextHopRecord : nextHopRecords) {
                         if (nextHopRecord.getFaceId() == peerFaceId) {
-                            prefixesRegisteredForPeer.add(fibEntry.getPrefix().toString());
+                            prefixesRegisteredForPeer.add(fibEntryPrefix);
                         }
                     }
                 }
             }
 
+            // iterate through prefixes found in response,
+            // removing any already registered prefixes for this peer
+            // any prefix remaining in prefixesRegisteredForPeer after this
+            // is no longer advertised by peer
             Iterator<String> it = prefixesInResp.iterator();
             while (it.hasNext()) {
                 String prefix = it.next();

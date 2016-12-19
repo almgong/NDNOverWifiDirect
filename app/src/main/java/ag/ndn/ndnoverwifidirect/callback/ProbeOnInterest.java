@@ -1,5 +1,6 @@
 package ag.ndn.ndnoverwifidirect.callback;
 
+import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 
 import com.intel.jndn.management.Nfdc;
@@ -76,7 +77,8 @@ public class ProbeOnInterest implements NDNCallBackOnInterest {
                 // if GO, return all data prefixes
                 for (FibEntry fibEntry : fibEntries) {
                     //if (fibEntry.getPrefix().toString().startsWith(NDNController.DATA_PREFIX)) {
-                    if (!fibEntry.getPrefix().toString().startsWith("/localhop")) {
+                    if (!fibEntry.getPrefix().toString().startsWith("/localhop") &&
+                            !fibEntry.getPrefix().toString().startsWith("/localhost")) {
                         prefixesToReturn.add(fibEntry.getPrefix().toString());
                         num++;
                     }
@@ -95,7 +97,8 @@ public class ProbeOnInterest implements NDNCallBackOnInterest {
                 // return only those prefixes that are handled locally
                 for (FibEntry fibEntry : fibEntries) {
                     //if (fibEntry.getPrefix().toString().startsWith(NDNController.DATA_PREFIX)) {
-                    if (!fibEntry.getPrefix().toString().startsWith("/localhop")) {
+                    if (!fibEntry.getPrefix().toString().startsWith("/localhop") &&
+                            !fibEntry.getPrefix().toString().startsWith("/localhost")) {
                         // added constraint that the prefix must be be served from this device (e.g.
                         // by an upper layer application)
                         List<NextHopRecord> nextHopRecords = fibEntry.getNextHopRecords();

@@ -58,12 +58,12 @@ public class NDNController {
 
     public static final String URI_UDP_PREFIX = "udp://";
     public static final String URI_TCP_PREFIX = "tcp://";
-    public static final String PROBE_PREFIX = "/localhop/wifidirect";   // prefix used in probe handling
+    public static final String PROBE_PREFIX = "/localhop/wifidirect";   // prefix used in probing
     //public static final String DATA_PREFIX = "/ndn/wifidirect";
 
     private static final String TAG = "NDNController";
-    private static final int DISCOVER_PEERS_DELAY = 12000;  // in ms
-    private static final int PROBE_DELAY = 5000;           // in ms
+    private static final int DISCOVER_PEERS_DELAY = 30000;  // in ms
+    private static final int PROBE_DELAY = 20000;           // in ms
     private static final int MAX_PEERS = 5;
 
     // singleton
@@ -81,13 +81,13 @@ public class NDNController {
     private ScheduledThreadPoolExecutor discoverProbeExecutor;
 
     private boolean hasRegisteredOwnLocalhop = false;
-    private boolean isGroupOwner = false;           // set in broadcast receiver, defaulted to false, used primarily in ProbeOnInterest
+    private boolean isGroupOwner;                   // set in broadcast receiver, used primarily in ProbeOnInterest
     private boolean protocolRunning = false;        // whether the tasks/services of this protocol are reported running
 
     // we have some redundancy here in data, but difficult to avoid given WFDirect API
     // exposes only MAC addresses at the connect stage
     private HashMap<String, Peer> connectedPeers;                   // { deviceAddress(MAC) : PeerInstance, ... }
-    private HashMap<String, Peer> peersMap = new HashMap<>();       // { peerIp : PeerInstance }
+    private HashMap<String, Peer> peersMap;                         // { peerIp : PeerInstance }
 
     private final Face mFace = new Face("localhost"); // single face instance at localhost, not to be used outside of this class
 
@@ -96,6 +96,7 @@ public class NDNController {
             KeyChain kc = buildTestKeyChain();
             mFace.setCommandSigningInfo(kc, kc.getDefaultCertificateName());
             connectedPeers = new HashMap<>(MAX_PEERS);
+            peersMap = new HashMap<>(MAX_PEERS);
             discoverProbeExecutor = new ScheduledThreadPoolExecutor(1); // need at least one thread
         } catch (Exception e) {
             e.printStackTrace();
@@ -238,6 +239,7 @@ public class NDNController {
 
     /**
      * Creates a face to the specified peer (IP), with the
+     * uriPrefix (e.g. tcp://). Optional callback parameter
      * uriPrefix (e.g. tcp://). Optional callback parameter
      * for adding a callback function to be called after successful
      * face creation. Passing in null for callback means no callback.
@@ -417,10 +419,10 @@ public class NDNController {
         return this.hasRegisteredOwnLocalhop;
     }
 
+    public void setHasRegisteredOwnLocalhop(boolean set) { this.hasRegisteredOwnLocalhop = set; }
+
     public void registerOwnLocalhop() {
         if (!hasRegisteredOwnLocalhop) {
-            this.hasRegisteredOwnLocalhop = true;
-
             // register /localhop/wifidirect/<this-devices-ip> to localhost
             registerPrefix(mFace, PROBE_PREFIX + "/" + IPAddress.getLocalIPAddress(), new OnInterestCallback() {
                 @Override
@@ -498,5 +500,31 @@ public class NDNController {
     public KeyChain getKeyChain() throws net.named_data.jndn.security.SecurityException {
 
         return buildTestKeyChain();
+    }
+
+    /**
+     * Resets all state accumulated through normal operation.
+     */
+    public void cleanUp() {
+        // destroy the localhost face used for NFD communication
+        mFace.shutdown();
+
+        // if you are not a group owner, need to remove yourself from the WifiP2p group
+        if (!isGroupOwner) {
+            wifiP2pManager.removeGroup(channel, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    Log.d(TAG, "Successfully removed self from WifiP2p group.");
+                }
+
+                @Override
+                public void onFailure(int reason) {
+                    Log.e(TAG, "Unable to remove self from WifiP2p group, reason: " + reason);
+                }
+            });
+        }
+
+        // finally remove all state of controller singleton
+        mController = null;
     }
 }

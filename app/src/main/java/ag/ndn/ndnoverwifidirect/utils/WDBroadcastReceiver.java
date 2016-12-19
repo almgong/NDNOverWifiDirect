@@ -167,6 +167,8 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                                 // do so now
                                 mController.registerOwnLocalhop();
                                 Log.d(TAG, "registerOwnLocalhop() called...");
+                            } else {
+                                Log.d(TAG, "already registered own local hop prefix.");
                             }
 
                             if (info.isGroupOwner) {
@@ -181,7 +183,6 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                                 // you'll want to create a client thread that connects to the group
                                 // owner.
                                 Log.d(TAG, "I am not the group owner, create a face towards GO.");
-
                                 mController.setIsGroupOwner(false);
 
                                 // skip if already part of this group
@@ -260,7 +261,7 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
      * Resets all persistent state accumulated through
      * normal operation.
      */
-    public void resetState() {
+    public void cleanUp() {
         //connectedPeers.clear();
         myAddress = null;
         groupOwnerAddress = null;
