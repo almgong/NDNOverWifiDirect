@@ -40,7 +40,6 @@ public class WDBroadcastReceiverService extends Service {
     public void onCreate() {
         Log.d(TAG, "initWifiP2p() service");
         initWifiP2p();
-
     }
 
     @Override
@@ -54,26 +53,17 @@ public class WDBroadcastReceiverService extends Service {
 
     @Override
     public void onDestroy() {
-        Log.d(TAG, "Service onDestroy()");
+        Log.d(TAG, "onDestroy()");
 
         if (mReceiver != null) {
             Log.d(TAG, "unregisterReceiver()");
             unregisterReceiver(mReceiver);
-        }
-    }
 
-    /**
-     * Simply toasts a message using the service.
-     * @param message
-     */
-    public void toastOnScreen(final String message) {
-        if (WDBroadcastReceiverService.this == null) {
-            Log.e(TAG, "WAS NYULL WHAT???");
-        } else {
-            Log.e(TAG, "WAS NOT NULL");
+            // clean up any accumulated, static state
+            WDBroadcastReceiver.cleanUp();
         }
 
-        //Toast.makeText(WDBroadcastReceiverService.this, message, Toast.LENGTH_LONG);
+        super.onDestroy();
     }
 
     /* initialize manager and receiver for activity */

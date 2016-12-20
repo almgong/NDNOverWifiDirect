@@ -17,6 +17,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -96,14 +97,17 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                             newPeers.put(device.deviceAddress, device);
                         }
 
-                        // iterate through currently connected peers, removing already connected
-                        // peers and those that are no longer available
-                        for (String peerMacAddr : mController.getConnectedPeers()) {
+                        // iterate through currently connected peers, noting already connected
+                        // peers and removing those that are no longer available
+                        Iterator<String> currPeersIterator = mController.getConnectedPeers().iterator();
+                        while (currPeersIterator.hasNext()) {
+                            String peerMacAddr = currPeersIterator.next();
                             if (newPeers.containsKey(peerMacAddr)) {
                                 newPeers.remove(peerMacAddr);
                             } else {
                                 // this means the current peer is no longer available
-                                mController.removeConnectedPeer(peerMacAddr);
+                                //mController.removeConnectedPeer(peerMacAddr);
+                                currPeersIterator.remove();
                             }
                         }
 
@@ -261,7 +265,7 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
      * Resets all persistent state accumulated through
      * normal operation.
      */
-    public void cleanUp() {
+    public static void cleanUp() {
         //connectedPeers.clear();
         myAddress = null;
         groupOwnerAddress = null;

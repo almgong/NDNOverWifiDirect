@@ -6,6 +6,9 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import com.intel.jndn.management.ManagementException;
+import com.intel.jndn.management.Nfdc;
+
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.InterestFilter;
@@ -47,7 +50,7 @@ import ag.ndn.ndnoverwifidirect.task.RibRegisterPrefixTask;
  * While you are at the Manifest file, add the permissions wrapped in "wifid" comments found in this project's manifest.
  *
  * 1. Import ag.ndn.ndnoverwifidirect.utils.NDNController (this) as necessary.
- * 2. call setWifiDirectContext(), and set the context in which you start peer discovery (e.g. the fragment with the switch)
+ * 2. call setWifiDirectContext(), and set the context in which you call start/stop (e.g. the fragment with the switch)
  * 3. call NDNController.getInstance().start/stopBroadcastReceiverService() as necessary
  * 4. call NDNController.getInstance().start/stopDiscoverAndProbe() as necessary.
  *
@@ -63,7 +66,7 @@ public class NDNController {
 
     private static final String TAG = "NDNController";
     private static final int DISCOVER_PEERS_DELAY = 30000;  // in ms
-    private static final int PROBE_DELAY = 20000;           // in ms
+    private static final int PROBE_DELAY = 12000;           // in ms
     private static final int MAX_PEERS = 5;
 
     // singleton
@@ -86,8 +89,8 @@ public class NDNController {
 
     // we have some redundancy here in data, but difficult to avoid given WFDirect API
     // exposes only MAC addresses at the connect stage
-    private HashMap<String, Peer> connectedPeers;                   // { deviceAddress(MAC) : PeerInstance, ... }
-    private HashMap<String, Peer> peersMap;                         // { peerIp : PeerInstance }
+    private HashMap<String, Peer> connectedPeers;                   // { deviceAddress(MAC) : PeerInstance, ... }, contains MAC and device name
+    private HashMap<String, Peer> peersMap;                         // { peerIp : PeerInstance }, contains at least Face id info
 
     private final Face mFace = new Face("localhost"); // single face instance at localhost, not to be used outside of this class
 
@@ -143,10 +146,6 @@ public class NDNController {
      */
     public Peer getPeerByDeviceAddress(String deviceAddress) {
         return connectedPeers.get(deviceAddress);
-    }
-
-    public void removeConnectedPeer(String deviceAddress) {
-        connectedPeers.remove(deviceAddress);
     }
 
     // shared methods
@@ -230,7 +229,7 @@ public class NDNController {
 
     /**
      * Must be done before we can start the Broadcast Receiver Service -  in the future we can also
-     * move the starting to somewhere within an activity or fragment to avoid this.
+     * move the starting to somewhere within an activity or fragment in order to avoid this.
      * @param context A valid Android context
      */
     public void setWifiDirectContext(Context context) {
@@ -244,8 +243,8 @@ public class NDNController {
      * for adding a callback function to be called after successful
      * face creation. Passing in null for callback means no callback.
      *
-     * @param peerIp
-     * @param uriPrefix
+     * @param peerIp the peer's WiFi Direct IP
+     * @param uriPrefix uri prefix
      * @param callback An implementation of GenericCallback, or null. Is called AFTER face
      *                 creation succeeds.
      */
@@ -370,7 +369,12 @@ public class NDNController {
         if (brService == null) {
             Log.d(TAG, "BroadcastReceiverService not running, no need to stop.");
         } else {
-            brService.stopSelf();
+            if (wifiDirectContext != null) {
+                Log.d(TAG, "Stopping WDBR service...");
+                wifiDirectContext.stopService(new Intent(wifiDirectContext, WDBroadcastReceiverService.class));
+                // also can try: brService.onStop()
+            }
+
             brService = null;
             Log.d(TAG, "Stopped WDBR service.");
         }
@@ -498,7 +502,6 @@ public class NDNController {
 
     /* In the future, we should allow users to implement this method so they can provide their own keychain */
     public KeyChain getKeyChain() throws net.named_data.jndn.security.SecurityException {
-
         return buildTestKeyChain();
     }
 
@@ -506,11 +509,10 @@ public class NDNController {
      * Resets all state accumulated through normal operation.
      */
     public void cleanUp() {
-        // destroy the localhost face used for NFD communication
-        mFace.shutdown();
 
-        // if you are not a group owner, need to remove yourself from the WifiP2p group
-        if (!isGroupOwner) {
+        // if you are not a group owner, need to remove yourself from the WifiP2p group.
+        // group owners will automatically destroy the group when appropriate
+        if (!isGroupOwner && (wifiP2pManager != null)) {
             wifiP2pManager.removeGroup(channel, new WifiP2pManager.ActionListener() {
                 @Override
                 public void onSuccess() {
@@ -523,6 +525,24 @@ public class NDNController {
                 }
             });
         }
+
+        // remove all faces created to peers, make use of our handy executor
+        for (final String peerIp : peersMap.keySet()) {
+            discoverProbeExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Log.d(TAG, "Cleaning up face towards peer: " + peerIp);
+                        Nfdc.destroyFace(mFace, peersMap.get(peerIp).getFaceId());
+                    } catch (ManagementException me) {
+                        me.printStackTrace();
+                    }
+                }
+            });
+        }
+
+        // destroy the localhost face used for NFD communication
+        mFace.shutdown();
 
         // finally remove all state of controller singleton
         mController = null;
