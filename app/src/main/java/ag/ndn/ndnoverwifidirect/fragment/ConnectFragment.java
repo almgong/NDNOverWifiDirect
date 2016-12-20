@@ -1,6 +1,7 @@
 package ag.ndn.ndnoverwifidirect.fragment;
 
 import android.app.Activity;
+import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -77,7 +78,7 @@ public class ConnectFragment extends Fragment {
         // restore state as such
         aSwitch.setChecked(NDNController.getInstance().isProtocolRunning());
 
-        NDNController.getInstance().setWifiDirectContext(getActivity());
+        //NDNController.getInstance().setWifiDirectContext(getActivity());
 
         // for listview
         for (String deviceAddress : NDNController.getInstance().getConnectedPeers()) {
@@ -94,15 +95,18 @@ public class ConnectFragment extends Fragment {
             }
         });
 
+        final Context context = getActivity();
         // listen for onChange event for switch
         aSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
+                    NDNController.getInstance().setWifiDirectContext(context);
                     NDNController.getInstance().startDiscoverAndProbe();
                 } else {
                     // turn off
                     NDNController.getInstance().stopDiscoverAndProbe();
+                    NDNController.getInstance().cleanUp();
                 }
             }
         });
