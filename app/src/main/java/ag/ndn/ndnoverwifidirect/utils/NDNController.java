@@ -133,14 +133,16 @@ public class NDNController {
 
     /**
      * Returns the MAC addresses of all currently connected peers.
-     * @return Set of MAC addresses
+     * @return Set of MAC addresses backed by the underlying mapping
+     * of connected peers. Thus, be advised that changes to the returned
+     * set will be reflected in the map.
      */
     public Set<String> getConnectedPeers() {
         return connectedPeers.keySet();
     }
 
     /**
-     * Given a MAC address, return all logged peer information, if any.
+     * Given a MAC address, return logged peer information, if any.
      * @param deviceAddress MAC address of peer
      * @return Peer instance containing information of this peer.
      */
@@ -187,6 +189,17 @@ public class NDNController {
      */
     public Peer getPeerByIp(String ip) {
         return peersMap.get(ip);
+    }
+
+    /**
+     * Similar to getConnectedPeers, except this returns the IP addresses
+     * of the currently logged peers.
+     * @return A set backed by the underlying map of logged peers. Thus,
+     * be advised that changes to the returned set will be reflected in
+     * the underlying map.
+     */
+    public Set<String> getIpLoggedPeers() {
+        return peersMap.keySet();
     }
 
     /**
@@ -370,9 +383,7 @@ public class NDNController {
             Log.d(TAG, "BroadcastReceiverService not running, no need to stop.");
         } else {
             if (wifiDirectContext != null) {
-                Log.d(TAG, "Stopping WDBR service...");
                 wifiDirectContext.stopService(new Intent(wifiDirectContext, WDBroadcastReceiverService.class));
-                // also can try: brService.onStop()
             }
 
             brService = null;
@@ -542,7 +553,7 @@ public class NDNController {
         }
 
         // destroy the localhost face used for NFD communication
-        mFace.shutdown();
+        // mFace.shutdown();
 
         // finally remove all state of controller singleton
         mController = null;
