@@ -76,7 +76,7 @@ public class ConnectFragment extends Fragment {
         Button refreshPeersBtn = (Button) view.findViewById(R.id.discoverPeersBtn);
 
         // restore state as such
-        aSwitch.setChecked(NDNController.getInstance().isProtocolRunning());
+        //aSwitch.setChecked(NDNController.getInstance().isProtocolRunning());
 
         //NDNController.getInstance().setWifiDirectContext(getActivity());
 
@@ -102,10 +102,10 @@ public class ConnectFragment extends Fragment {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     NDNController.getInstance().setWifiDirectContext(context);
-                    NDNController.getInstance().startDiscoverAndProbe();
+                    NDNController.getInstance().start();
                 } else {
                     // turn off
-                    NDNController.getInstance().stopDiscoverAndProbe();
+                    NDNController.getInstance().stop();
                     NDNController.getInstance().cleanUp();
                 }
             }
