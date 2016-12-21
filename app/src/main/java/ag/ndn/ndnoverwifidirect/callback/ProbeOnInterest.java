@@ -51,7 +51,7 @@ public class ProbeOnInterest implements NDNCallBackOnInterest {
         // if not logged (a face created for this probing peer), should then create a face (mainly for GO)
         if (mController.getFaceIdForPeer(peerIp) == -1) {
 
-            mController.createFace(peerIp, NDNController.URI_TCP_PREFIX, new GenericCallback() {
+            mController.createFace(peerIp, NDNController.URI_TRANSPORT_PREFIX, new GenericCallback() {
                 @Override
                 public void doJob() {
                     Log.d(TAG, "Registering localhop for: " + peerIp);
