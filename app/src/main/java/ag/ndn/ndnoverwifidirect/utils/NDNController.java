@@ -14,7 +14,8 @@ import net.named_data.jndn.Interest;
 import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.OnInterestCallback;
-import net.named_data.jndn.security.KeyChain;
+import net.named_data.jndn.security.*;
+import net.named_data.jndn.security.SecurityException;
 import net.named_data.jndn.security.identity.IdentityManager;
 import net.named_data.jndn.security.identity.MemoryIdentityStorage;
 import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
@@ -30,6 +31,7 @@ import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
 import ag.ndn.ndnoverwifidirect.callback.ProbeOnInterest;
 import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.runnable.DiscoverPeersRunnable;
+import ag.ndn.ndnoverwifidirect.runnable.FaceConsistencyRunnable;
 import ag.ndn.ndnoverwifidirect.runnable.ProbeRunnable;
 import ag.ndn.ndnoverwifidirect.service.WDBroadcastReceiverService;
 import ag.ndn.ndnoverwifidirect.task.FaceCreateTask;
@@ -51,8 +53,7 @@ import ag.ndn.ndnoverwifidirect.task.RibRegisterPrefixTask;
  *
  * 1. Import ag.ndn.ndnoverwifidirect.utils.NDNController (this) as necessary.
  * 2. call setWifiDirectContext(), and set the context in which you call start/stop (e.g. the fragment with the switch)
- * 3. call NDNController.getInstance().start/stopBroadcastReceiverService() as necessary
- * 4. call NDNController.getInstance().start/stopDiscoverAndProbe() as necessary.
+ * 3. call NDNController.getInstance().start/stop() as necessary.
  *
  * Created by allengong on 10/23/16.
  */
@@ -61,16 +62,18 @@ public class NDNController {
 
     public static final String URI_UDP_PREFIX = "udp://";
     public static final String URI_TCP_PREFIX = "tcp://";
+    public static final String URI_TRANSPORT_PREFIX = URI_TCP_PREFIX;   // transport portion of uri that rest of project should use
     public static final String PROBE_PREFIX = "/localhop/wifidirect";   // prefix used in probing
-    //public static final String DATA_PREFIX = "/ndn/wifidirect";
 
     private static final String TAG = "NDNController";
     private static final int DISCOVER_PEERS_DELAY = 30000;  // in ms
     private static final int PROBE_DELAY = 12000;           // in ms
+    private static final int FACE_CONSISTENCY_CHECK_DELAY = DISCOVER_PEERS_DELAY + PROBE_DELAY + 100;
     private static final int MAX_PEERS = 5;
 
     // singleton
     private static NDNController mController = null;
+    private static KeyChain mKeyChain = null;
 
     // WiFi Direct related resources
     private WifiP2pManager wifiP2pManager = null;
@@ -78,32 +81,44 @@ public class NDNController {
     private Context wifiDirectContext = null;       // context in which WiFi direct operations begin (the activity/fragment)
 
     // shared members (GO and Non-GO)
+    // Relevant tasks, services, etc.
     private WDBroadcastReceiverService brService = null;
     private Future discoverPeersFuture = null;
     private Future probeFuture = null;
-    private ScheduledThreadPoolExecutor discoverProbeExecutor;
+    private Future faceConsistencyFuture = null;
+    private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
     private boolean hasRegisteredOwnLocalhop = false;
-    private boolean isGroupOwner;                   // set in broadcast receiver, used primarily in ProbeOnInterest
-    private boolean protocolRunning = false;        // whether the tasks/services of this protocol are reported running
+    private boolean isGroupOwner;    // set in broadcast receiver, used primarily in ProbeOnInterest
 
     // we have some redundancy here in data, but difficult to avoid given WFDirect API
     // exposes only MAC addresses at the connect stage
+    // TODO Perhaps consulting ARP table could resolve this?
     private HashMap<String, Peer> connectedPeers;                   // { deviceAddress(MAC) : PeerInstance, ... }, contains MAC and device name
     private HashMap<String, Peer> peersMap;                         // { peerIp : PeerInstance }, contains at least Face id info
 
     private final Face mFace = new Face("localhost"); // single face instance at localhost, not to be used outside of this class
 
     private NDNController() {
-        try {
-            KeyChain kc = buildTestKeyChain();
-            mFace.setCommandSigningInfo(kc, kc.getDefaultCertificateName());
-            connectedPeers = new HashMap<>(MAX_PEERS);
-            peersMap = new HashMap<>(MAX_PEERS);
-            discoverProbeExecutor = new ScheduledThreadPoolExecutor(1); // need at least one thread
-        } catch (Exception e) {
-            e.printStackTrace();
+
+        if (mKeyChain == null) {
+            try {
+                // this is an expensive operation, so minimize it's invocation
+                mKeyChain = buildTestKeyChain();
+            } catch (SecurityException e) {
+                Log.e(TAG, "Unable to build the test keychain.");
+            }
         }
+
+        try {
+            mFace.setCommandSigningInfo(mKeyChain, mKeyChain.getDefaultCertificateName());
+        } catch (net.named_data.jndn.security.SecurityException e) {
+            Log.e(TAG, "Unable to set command signing info for localhost face.");
+        }
+
+        connectedPeers = new HashMap<>(MAX_PEERS);
+        peersMap = new HashMap<>(MAX_PEERS);
+        scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1); // need at least one thread
 
     }  // prevents outside instantiation
 
@@ -198,7 +213,7 @@ public class NDNController {
      * be advised that changes to the returned set will be reflected in
      * the underlying map.
      */
-    public Set<String> getIpLoggedPeers() {
+    public Set<String> getIpsOfLoggedPeers() {
         return peersMap.keySet();
     }
 
@@ -321,7 +336,7 @@ public class NDNController {
     public void startDiscoveringPeers() {
         if (discoverPeersFuture == null) {
             Log.d(TAG, "Start discovering peers every " + DISCOVER_PEERS_DELAY + "ms");
-            discoverPeersFuture = discoverProbeExecutor.scheduleWithFixedDelay(new DiscoverPeersRunnable(), 100, DISCOVER_PEERS_DELAY, TimeUnit.MILLISECONDS);
+            discoverPeersFuture = scheduledThreadPoolExecutor.scheduleWithFixedDelay(new DiscoverPeersRunnable(), 100, DISCOVER_PEERS_DELAY, TimeUnit.MILLISECONDS);
         } else {
             Log.d(TAG, "Discovering peers already running!");
         }
@@ -344,7 +359,7 @@ public class NDNController {
     public void startProbing() {
         if (probeFuture == null) {
             Log.d(TAG, "Start probing for data prefixes every " + PROBE_DELAY + "ms");
-            probeFuture = discoverProbeExecutor.scheduleWithFixedDelay(new ProbeRunnable(), 200, PROBE_DELAY, TimeUnit.MILLISECONDS);
+            probeFuture = scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProbeRunnable(), 200, PROBE_DELAY, TimeUnit.MILLISECONDS);
         } else {
             Log.d(TAG, "Probing task already running!");
         }
@@ -392,38 +407,52 @@ public class NDNController {
     }
 
     /**
-     * Convenience wrapper method to start all background
+     * Starts preiodically checking for consistency between NFD and NDNController's view of
+     * active faces.
+     */
+    public void startFaceConsistencyChecker() {
+        if (faceConsistencyFuture == null) {
+            Log.d(TAG, "Start checking consistency of logged Faces every " +
+                    FACE_CONSISTENCY_CHECK_DELAY + "ms");
+            faceConsistencyFuture = scheduledThreadPoolExecutor.scheduleWithFixedDelay(new FaceConsistencyRunnable(),
+                                    300, FACE_CONSISTENCY_CHECK_DELAY, TimeUnit.MILLISECONDS);
+        } else {
+            Log.d(TAG, "Face consistency checker already running!");
+        }
+    }
+
+    public void stopFaceConsistencyChecker() {
+        if (faceConsistencyFuture != null) {
+            faceConsistencyFuture.cancel(false);    // do not interrupt if running, but cancel further execution
+            faceConsistencyFuture = null;
+
+            Log.d(TAG, "Stopped checking for Face consistency.");
+        }
+    }
+
+    /**
+     * Main convenience wrapper method to start all background
      * tasks/services for this protocol.
      */
-    public void startDiscoverAndProbe() {
+    public void start() {
         // we will treat this as meaning both are not active
         startDiscoveringPeers();
         startProbing();
         startBroadcastReceiverService();
-
-        protocolRunning = true;
+        startFaceConsistencyChecker();
     }
 
     /**
-     * Convenience wrapper method to stop all background
+     * Main convenience wrapper method to stop all background
      * tasts/services for this protocol.
      */
-    public void stopDiscoverAndProbe() {
+    public void stop() {
         stopDiscoveringPeers();
         stopProbing();
         stopBroadcastReceiverService();
-
-        protocolRunning = false;
+        stopFaceConsistencyChecker();
     }
 
-    /**
-     * Temporary method, really just used for the demo: see ConnectFragment.java.
-     * @return whether the last call was a call to startDiscoverAndProbe() as opposed
-     * to stopDiscoverAndProbe().
-     */
-    public boolean isProtocolRunning() {
-        return protocolRunning;
-    }
 
     /**
      * Whether or not /localhop/wifidirect/xxx.xxx.xxx.xxx has
@@ -473,7 +502,7 @@ public class NDNController {
     }
 
     /**
-     * Returns a face to localhost, to prevent creation/destruction of
+     * Returns a face to localhost, to avoid multiple creations of localhost
      * faces.
      * @return
      */
@@ -538,22 +567,29 @@ public class NDNController {
         }
 
         // remove all faces created to peers, make use of our handy executor
-        for (final String peerIp : peersMap.keySet()) {
-            discoverProbeExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Log.d(TAG, "Cleaning up face towards peer: " + peerIp);
-                        Nfdc.destroyFace(mFace, peersMap.get(peerIp).getFaceId());
-                    } catch (ManagementException me) {
-                        me.printStackTrace();
+        final Face tempLocalFace = new Face("localhost"); // we will use this for NFD communication
+        try {
+            tempLocalFace.setCommandSigningInfo(mKeyChain, mKeyChain.getDefaultCertificateName());
+            for (final String peerIp : peersMap.keySet()) {
+                scheduledThreadPoolExecutor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            Log.d(TAG, "Cleaning up face towards peer: " + peerIp);
+                            Nfdc.destroyFace(tempLocalFace, peersMap.get(peerIp).getFaceId());
+                        } catch (ManagementException me) {
+                            Log.e(TAG, "Unable to destroy face to: " + peerIp);
+                        }
                     }
-                }
-            });
+                });
+            }
+        } catch (SecurityException se) {
+            Log.e(TAG, "Unable to set command signing info for face used in cleanUp()");
         }
 
-        // destroy the localhost face used for NFD communication
-        // mFace.shutdown();
+        // destroy the localhost face used for NFD communication during normal operation
+        // a new one will be created on next call to getInstance()
+        mFace.shutdown();
 
         // finally remove all state of controller singleton
         mController = null;
