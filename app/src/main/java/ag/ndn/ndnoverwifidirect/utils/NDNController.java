@@ -421,6 +421,10 @@ public class NDNController {
         }
     }
 
+    /**
+     * Stops periodically checking for consistency between NFD and NDNController's view
+     * of active faces.
+     */
     public void stopFaceConsistencyChecker() {
         if (faceConsistencyFuture != null) {
             faceConsistencyFuture.cancel(false);    // do not interrupt if running, but cancel further execution
@@ -463,11 +467,15 @@ public class NDNController {
         return this.hasRegisteredOwnLocalhop;
     }
 
+    /**
+     * Sets the flag for whether the /localhop/wifidiret/xxx.xxx.xxx.xxx prefix is registered.
+     * @param set whether it has been set
+     */
     public void setHasRegisteredOwnLocalhop(boolean set) { this.hasRegisteredOwnLocalhop = set; }
 
     public void registerOwnLocalhop() {
         if (!hasRegisteredOwnLocalhop) {
-            // register /localhop/wifidirect/<this-devices-ip> to localhost
+            // register /localhop/wifidirect/<this-device's-ip> to localhost
             registerPrefix(mFace, PROBE_PREFIX + "/" + IPAddress.getLocalIPAddress(), new OnInterestCallback() {
                 @Override
                 public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
@@ -510,9 +518,15 @@ public class NDNController {
         return mFace;
     }
 
-    // everything below here is for convenience (can be done manually otherwise)
-
-    // registers a prefix to the given face (usually localhost)
+    /**
+     * Registers a prefix to be handled by a localhost face.
+     * @param face a localhost face
+     * @param prefix the string prefix to register
+     * @param cb a callback to be called on interest receipt
+     * @param handleForever whether to handle this prefix forever (deprecated)
+     * @param repeatTimer the time interval between successive calls to processEvents
+     * @return
+     */
     public AsyncTask registerPrefix(Face face, String prefix, OnInterestCallback cb, boolean handleForever,
                                     long repeatTimer) {
 
@@ -566,32 +580,32 @@ public class NDNController {
             });
         }
 
-        // remove all faces created to peers, make use of our handy executor
-        final Face tempLocalFace = new Face("localhost"); // we will use this for NFD communication
-        try {
-            tempLocalFace.setCommandSigningInfo(mKeyChain, mKeyChain.getDefaultCertificateName());
-            for (final String peerIp : peersMap.keySet()) {
-                scheduledThreadPoolExecutor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            Log.d(TAG, "Cleaning up face towards peer: " + peerIp);
-                            Nfdc.destroyFace(tempLocalFace, peersMap.get(peerIp).getFaceId());
-                        } catch (ManagementException me) {
-                            Log.e(TAG, "Unable to destroy face to: " + peerIp);
-                        }
+        // Remove all faces created to peers, and shut down the localhost face we used
+        // for communication with NFD. Lastly, null out the singleton used to reset rest
+        // of accumulated state.
+        // Make use of our handy executor
+        Runnable cleanUpRunnable = new Runnable() {
+            @Override
+            public void run() {
+
+                for (String peerIp : peersMap.keySet()) {
+                    try {
+                        Log.d(TAG, "Cleaning up face towards peer: " + peerIp);
+                        Nfdc.destroyFace(mFace, peersMap.get(peerIp).getFaceId());
+                    } catch (ManagementException me) {
+                        Log.e(TAG, "Unable to destroy face to: " + peerIp);
                     }
-                });
+                }
+
+                // shutdown the face
+                mFace.shutdown();
+
+                // null out the singleton to remove rest of state
+                mController = null;
             }
-        } catch (SecurityException se) {
-            Log.e(TAG, "Unable to set command signing info for face used in cleanUp()");
-        }
+        };
 
-        // destroy the localhost face used for NFD communication during normal operation
-        // a new one will be created on next call to getInstance()
-        mFace.shutdown();
-
-        // finally remove all state of controller singleton
-        mController = null;
+        // perform rest of clean up
+        scheduledThreadPoolExecutor.execute(cleanUpRunnable);
     }
 }
