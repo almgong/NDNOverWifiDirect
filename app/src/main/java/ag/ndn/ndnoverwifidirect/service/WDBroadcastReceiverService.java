@@ -15,7 +15,7 @@ import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
 
 /**
- * Service that continues listening to WiFi Direct
+ * Service that registers a WDBroadcastReceiver to listen to WiFi Direct
  * broadcasted intents.
  *
  * Created by allengong on 11/28/16.

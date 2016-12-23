@@ -26,7 +26,8 @@ public class FaceConsistencyRunnable implements Runnable {
 
         Log.d(TAG, "Running periodic Face consistency check...");
 
-        // first, let's retrieve a set of active FaceIds from NFD
+        // first, let's retrieve a set of active FaceIds from NFD.
+        // then, let's compare this set with what NDNController has
         try {
             List<FaceStatus> faceStatuses =
                     Nfdc.getFaceList(NDNController.getInstance().getLocalHostFace());

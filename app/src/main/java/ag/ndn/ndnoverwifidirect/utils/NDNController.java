@@ -40,20 +40,9 @@ import ag.ndn.ndnoverwifidirect.task.RegisterPrefixTask;
 import ag.ndn.ndnoverwifidirect.task.RibRegisterPrefixTask;
 
 /**
- * New streamlined NDNOverWifiDirect controller. One instance exists
- * for the application.
- *
- * 1. No longer subclasses NfdcHelper class.
- * 2. GO's will keep track of Faces to peers (faceIds), while non-GO
- * effectively have a single face to GO
- *
- * To integrate:
- * First, make sure to add a line in the Manifest declaring WDBroadcastReceiverService (see this project's manifest for example).
- * While you are at the Manifest file, add the permissions wrapped in "wifid" comments found in this project's manifest.
- *
- * 1. Import ag.ndn.ndnoverwifidirect.utils.NDNController (this) as necessary.
- * 2. call setWifiDirectContext(), and set the context in which you call start/stop (e.g. the fragment with the switch)
- * 3. call NDNController.getInstance().start/stop() as necessary.
+ * New streamlined NDNOverWifiDirect controller. This class acts as the
+ * manager (hence controller) of the protocol, and applications using
+ * this project need only interface with the returned instance via getInstance().
  *
  * Created by allengong on 10/23/16.
  */
@@ -63,7 +52,7 @@ public class NDNController {
     public static final String URI_UDP_PREFIX = "udp://";
     public static final String URI_TCP_PREFIX = "tcp://";
     public static final String URI_TRANSPORT_PREFIX = URI_TCP_PREFIX;   // transport portion of uri that rest of project should use
-    public static final String PROBE_PREFIX = "/localhop/wifidirect";   // prefix used in probing
+    public static final String PROBE_PREFIX = "/localhop/wifidirect";   // prefix of prefix used in probing
 
     private static final String TAG = "NDNController";
     private static final int DISCOVER_PEERS_DELAY = 30000;  // in ms
@@ -71,16 +60,15 @@ public class NDNController {
     private static final int FACE_CONSISTENCY_CHECK_DELAY = DISCOVER_PEERS_DELAY + PROBE_DELAY + 100;
     private static final int MAX_PEERS = 5;
 
-    // singleton
+    // Singleton
     private static NDNController mController = null;
     private static KeyChain mKeyChain = null;
 
     // WiFi Direct related resources
     private WifiP2pManager wifiP2pManager = null;
     private WifiP2pManager.Channel channel = null;
-    private Context wifiDirectContext = null;       // context in which WiFi direct operations begin (the activity/fragment)
+    private Context wifiDirectContext = null;       // context in which WiFi direct operations begin (an activity/fragment)
 
-    // shared members (GO and Non-GO)
     // Relevant tasks, services, etc.
     private WDBroadcastReceiverService brService = null;
     private Future discoverPeersFuture = null;
@@ -88,17 +76,22 @@ public class NDNController {
     private Future faceConsistencyFuture = null;
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
+    // Useful flags
     private boolean hasRegisteredOwnLocalhop = false;
     private boolean isGroupOwner;    // set in broadcast receiver, used primarily in ProbeOnInterest
 
-    // we have some redundancy here in data, but difficult to avoid given WFDirect API
+    // we have some redundancy here in data, but difficult to avoid given WiFi Direct API
     // exposes only MAC addresses at the connect stage
     // TODO Perhaps consulting ARP table could resolve this?
     private HashMap<String, Peer> connectedPeers;                   // { deviceAddress(MAC) : PeerInstance, ... }, contains MAC and device name
     private HashMap<String, Peer> peersMap;                         // { peerIp : PeerInstance }, contains at least Face id info
 
-    private final Face mFace = new Face("localhost"); // single face instance at localhost, not to be used outside of this class
+    // single Face instance at localhost, not to be used outside of this class
+    private final Face mFace = new Face("localhost");
 
+    /**
+     * Private constructor to prevent outside instantiation.
+     */
     private NDNController() {
 
         if (mKeyChain == null) {
@@ -120,8 +113,12 @@ public class NDNController {
         peersMap = new HashMap<>(MAX_PEERS);
         scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1); // need at least one thread
 
-    }  // prevents outside instantiation
+    }
 
+    /**
+     * Returns a shared instance of NDNController for use across the library.
+     * @return NDNController instance
+     */
     public static NDNController getInstance() {
         if (mController == null) {
             mController = new NDNController();
@@ -132,7 +129,7 @@ public class NDNController {
 
     /**
      * Attempts to add a peer to a rolling list of connected peers, up to MAX_PEERS amount.
-     * @param peer
+     * @param peer The Peer instance to add, with at least the device address set.
      * @return true if addition was successful, false otherwise (max peers number reached).
      */
     public boolean logConnectedPeer(Peer peer) {
@@ -165,21 +162,6 @@ public class NDNController {
         return connectedPeers.get(deviceAddress);
     }
 
-    // shared methods
-
-    /**
-     * Returns the Face id associated with the given peer, denoted by IP address.
-     * @param peerIp The WiFi Direct IP address of the peer
-     * @return the Face id of the peer or -1 if no mapping exists.
-     */
-    public int getFaceIdForPeer(String peerIp) {
-        if (peersMap.containsKey(peerIp)) {
-            return peersMap.get(peerIp).getFaceId();
-        }
-
-        return -1;
-    }
-
     /**
      * Logs the peer with the corresponding faceId
      * @param peerIp The peer's WD IP address
@@ -193,6 +175,19 @@ public class NDNController {
 
         peersMap.put(peerIp, peer);
         return true;
+    }
+
+    /**
+     * Returns the Face id associated with the given peer, denoted by IP address.
+     * @param peerIp The WiFi Direct IP address of the peer
+     * @return the Face id of the peer or -1 if no mapping exists.
+     */
+    public int getFaceIdForPeer(String peerIp) {
+        if (peersMap.containsKey(peerIp)) {
+            return peersMap.get(peerIp).getFaceId();
+        }
+
+        return -1;
     }
 
     /**
@@ -230,7 +225,7 @@ public class NDNController {
 
     /**
      * Returns whether this device is the group owner
-     * @return
+     * @return true if this device is GO, false otherwise
      */
     public boolean getIsGroupOwner() {
         return isGroupOwner;
@@ -238,7 +233,7 @@ public class NDNController {
 
     /**
      * Sets whether this device is the group owner
-     * @param b
+     * @param b whether the device is the GO.
      */
     public void setIsGroupOwner(boolean b) {
         isGroupOwner = b;
@@ -247,8 +242,8 @@ public class NDNController {
     /**
      * Initializes the WifiP2p context, channel and manager, for use with discovering peers.
      * This must be done before ever calling discoverPeers().
-     * @param wifiP2pManager
-     * @param channel
+     * @param wifiP2pManager the WifiP2pManager
+     * @param channel the WifiP2p Channel
      */
     public void recordWifiP2pResources(WifiP2pManager wifiP2pManager, WifiP2pManager.Channel channel) {
         this.wifiP2pManager = wifiP2pManager;
@@ -266,7 +261,6 @@ public class NDNController {
 
     /**
      * Creates a face to the specified peer (IP), with the
-     * uriPrefix (e.g. tcp://). Optional callback parameter
      * uriPrefix (e.g. tcp://). Optional callback parameter
      * for adding a callback function to be called after successful
      * face creation. Passing in null for callback means no callback.
@@ -303,8 +297,8 @@ public class NDNController {
     /**
      * Registers the array of prefixes with the given Face, denoted by
      * its face id.
-     * @param faceId
-     * @param prefixes
+     * @param faceId The Face Id to register the prefixes to.
+     * @param prefixes array of prefixes to register.
      */
     public void ribRegisterPrefix(int faceId, String[] prefixes) {
         Log.d(TAG, "ribRegisterPrefix called with: " + faceId + " and " + prefixes.length + " prefixes");
@@ -439,7 +433,6 @@ public class NDNController {
      * tasks/services for this protocol.
      */
     public void start() {
-        // we will treat this as meaning both are not active
         startDiscoveringPeers();
         startProbing();
         startBroadcastReceiverService();
@@ -448,7 +441,7 @@ public class NDNController {
 
     /**
      * Main convenience wrapper method to stop all background
-     * tasts/services for this protocol.
+     * tasks/services for this protocol.
      */
     public void stop() {
         stopDiscoveringPeers();
@@ -457,11 +450,10 @@ public class NDNController {
         stopFaceConsistencyChecker();
     }
 
-
     /**
      * Whether or not /localhop/wifidirect/xxx.xxx.xxx.xxx has
      * been registered. Here, the ip is specifically that of this device.
-     * @return
+     * @return true if so, false otherwise
      */
     public boolean getHasRegisteredOwnLocalhop() {
         return this.hasRegisteredOwnLocalhop;
@@ -469,10 +461,14 @@ public class NDNController {
 
     /**
      * Sets the flag for whether the /localhop/wifidiret/xxx.xxx.xxx.xxx prefix is registered.
-     * @param set whether it has been set
+     * @param set true or false
      */
     public void setHasRegisteredOwnLocalhop(boolean set) { this.hasRegisteredOwnLocalhop = set; }
 
+    /**
+     * Convenience function to register the important /localhop prefix, necessary for
+     * probe communication.
+     */
     public void registerOwnLocalhop() {
         if (!hasRegisteredOwnLocalhop) {
             // register /localhop/wifidirect/<this-device's-ip> to localhost
@@ -512,7 +508,7 @@ public class NDNController {
     /**
      * Returns a face to localhost, to avoid multiple creations of localhost
      * faces.
-     * @return
+     * @return the localhost Face instance.
      */
     public Face getLocalHostFace() {
         return mFace;
@@ -525,7 +521,7 @@ public class NDNController {
      * @param cb a callback to be called on interest receipt
      * @param handleForever whether to handle this prefix forever (deprecated)
      * @param repeatTimer the time interval between successive calls to processEvents
-     * @return
+     * @return the underlying AsyncTask object handling the prefix registration
      */
     public AsyncTask registerPrefix(Face face, String prefix, OnInterestCallback cb, boolean handleForever,
                                     long repeatTimer) {
@@ -535,28 +531,6 @@ public class NDNController {
         task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
         return task;
-    }
-
-    /** misc **/
-
-    private KeyChain buildTestKeyChain() throws net.named_data.jndn.security.SecurityException {
-        MemoryIdentityStorage identityStorage = new MemoryIdentityStorage();
-        MemoryPrivateKeyStorage privateKeyStorage = new MemoryPrivateKeyStorage();
-        IdentityManager identityManager = new IdentityManager(identityStorage, privateKeyStorage);
-        KeyChain keyChain = new KeyChain(identityManager);
-        try {
-            keyChain.getDefaultCertificateName();
-        } catch (net.named_data.jndn.security.SecurityException e) {
-            keyChain.createIdentity(new Name("/test/identity"));
-            keyChain.getIdentityManager().setDefaultIdentity(new Name("/test/identity"));
-        }
-        return keyChain;
-
-    }
-
-    /* In the future, we should allow users to implement this method so they can provide their own keychain */
-    public KeyChain getKeyChain() throws net.named_data.jndn.security.SecurityException {
-        return buildTestKeyChain();
     }
 
     /**
@@ -607,5 +581,27 @@ public class NDNController {
 
         // perform rest of clean up
         scheduledThreadPoolExecutor.execute(cleanUpRunnable);
+    }
+
+    /** misc **/
+
+    private KeyChain buildTestKeyChain() throws net.named_data.jndn.security.SecurityException {
+        MemoryIdentityStorage identityStorage = new MemoryIdentityStorage();
+        MemoryPrivateKeyStorage privateKeyStorage = new MemoryPrivateKeyStorage();
+        IdentityManager identityManager = new IdentityManager(identityStorage, privateKeyStorage);
+        KeyChain keyChain = new KeyChain(identityManager);
+        try {
+            keyChain.getDefaultCertificateName();
+        } catch (net.named_data.jndn.security.SecurityException e) {
+            keyChain.createIdentity(new Name("/test/identity"));
+            keyChain.getIdentityManager().setDefaultIdentity(new Name("/test/identity"));
+        }
+        return keyChain;
+
+    }
+
+    /* In the future, we should allow users to implement this method so they can provide their own keychain */
+    public KeyChain getKeyChain() throws net.named_data.jndn.security.SecurityException {
+        return buildTestKeyChain();
     }
 }

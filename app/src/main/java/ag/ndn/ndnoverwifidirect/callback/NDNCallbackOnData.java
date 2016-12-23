@@ -4,7 +4,7 @@ import net.named_data.jndn.Data;
 import net.named_data.jndn.Interest;
 
 /**
- * Interface specification of a generic callback
+ * Interface specification of a general callback
  * that takes in all input from a regular NDN OnData
  * callback, but fulfills a certain job.
  *

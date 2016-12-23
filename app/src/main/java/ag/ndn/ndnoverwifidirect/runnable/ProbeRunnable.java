@@ -25,7 +25,6 @@ import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
  * Probes network for data prefixes, as specified in protocol.
  * Created by allengong on 12/9/16.
  */
-
 public class ProbeRunnable implements Runnable {
     private static final String TAG = "ProbeRunnable";
     private final int MAX_TIMEOUTS_ALLOWED = 5;

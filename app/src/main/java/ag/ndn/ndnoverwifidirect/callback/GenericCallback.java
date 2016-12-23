@@ -8,5 +8,10 @@ package ag.ndn.ndnoverwifidirect.callback;
  */
 
 public interface GenericCallback {
+
+    /**
+     * No-arg function that all implementing classes must
+     * define.
+     */
     public void doJob();
 }

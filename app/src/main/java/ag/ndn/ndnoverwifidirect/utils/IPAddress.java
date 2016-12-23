@@ -9,12 +9,16 @@ import java.net.SocketException;
 import java.util.Enumeration;
 
 /**
- * Helps retrieve current system's IP address.
+ * Helps retrieve the current WifiP2p interface IP address.
  * See: http://stackoverflow.com/questions/10053385/how-to-get-each-devices-ip-address-in-wi-fi-direct-scenario
  * Created by allengong on 7/26/16.
  */
 public class IPAddress {
 
+    /**
+     * Returns the WiFi Direct (WifiP2p interface) IP address, or null if not available.
+     * @return String representation of the WD Ip address if it exists, otherwise null.
+     */
     public static String getLocalIPAddress() {
         try {
             byte[] ip = null;

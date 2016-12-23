@@ -18,7 +18,7 @@ import java.util.List;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 
 /**
- * Handle OnData events for probe interests.
+ * Handle OnData events for outgoing probe interests.
  *
  * Created by allengong on 11/12/16.
  */

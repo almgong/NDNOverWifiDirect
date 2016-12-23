@@ -17,10 +17,13 @@ import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;
 
 /**
- * Provides ability to register one to the specified face.
+ * Task that provides the ability to register a prefix to the specified face.
  * Given that multiple successive prefix registration calls can fail (NFD timeout),
  * This task will attempt to register prefixes 5 times or until success. Each
  * attempt is separated (e.g. 500ms) to increase chance of registration.
+ *
+ * As of 12/2016, this class has the added importance of letting NDNController
+ * know if its own /localhop prefix is registered.
  *
  * Created by allengong on 7/31/16.
  */

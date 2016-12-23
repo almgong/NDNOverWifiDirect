@@ -12,7 +12,10 @@ import net.named_data.jndn.Name;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 
 /**
- * Same as RegisterPrefixTask, but for a specifc face id, rather than a Face instance.
+ * Convenience class used for registering a prefix towards some Face, denoted by
+ * its Face ID. Note that this class differs from RegisterPrefixTask, as the latter
+ * deals with registering prefixes to a localhost face, while this class does not make
+ * that assumption.
  * Created by allengong on 8/22/16.
  */
 public class RibRegisterPrefixTask extends AsyncTask<String, Void, Integer> {

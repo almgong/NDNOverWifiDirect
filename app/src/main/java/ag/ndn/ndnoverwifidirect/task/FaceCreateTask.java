@@ -13,6 +13,9 @@ import ag.ndn.ndnoverwifidirect.model.Peer;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 
 /**
+ * Convenience class that creates a Face with the forwarder. A callback
+ * is accpeted via the public setCallback(...) method, and will be called
+ * if and only if face creation succeeds.
  * Created by allengong on 7/29/16.
  */
 // task to create a network face without using main thread

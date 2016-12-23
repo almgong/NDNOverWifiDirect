@@ -29,25 +29,25 @@ import static android.content.ContentValues.TAG;
 
 /**
  * WiFi Direct Broadcast receiver. Does not deviate too much
- * from the standard broadcast receivers seen in the official
- * android docs, will attempt to connect to all peers in range.
- *
- * Once connected to a group, we will register a face to the GO
- * if we are non-GO.
+ * from the standard WiFi Direct broadcast receiver seen in the official
+ * android docs.
  *
  * Created by allengong on 11/5/16.
  */
 
 public class WDBroadcastReceiver extends BroadcastReceiver {
 
+    // volatile variables accessed in multiple threads
     public static volatile String groupOwnerAddress;
     public static volatile String myAddress;
 
     private static final String TAG = "WDBroadcastReceiver";
 
+    // WifiP2p
     private WifiP2pManager mManager;
     private WifiP2pManager.Channel mChannel;
 
+    // the controller
     private NDNController mController;
 
     public WDBroadcastReceiver(WifiP2pManager manager, WifiP2pManager.Channel channel) {
@@ -172,14 +172,14 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
                                 mController.registerOwnLocalhop();
                                 Log.d(TAG, "registerOwnLocalhop() called...");
                             } else {
-                                Log.d(TAG, "already registered own local hop prefix.");
+                                Log.d(TAG, "already registered own /localhop prefix.");
                             }
 
                             if (info.isGroupOwner) {
                                 // Do whatever tasks are specific to the group owner.
                                 // One common case is creating a server thread and accepting
                                 // incoming connections.
-                                Log.d(TAG, "I am the group owner, do nothing.");
+                                Log.d(TAG, "I am the group owner, wait for probe interests from peers...");
                                 mController.setIsGroupOwner(true);
                             } else {
                                 // non group owner
@@ -232,6 +232,10 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
         }
     }
 
+    /**
+     * Convenience method to connect to a WifiP2p peer.
+     * @param peerDevice the WifiP2pDevice instance to connect to
+     */
     public void connect(final WifiP2pDevice peerDevice) {
 
         // config
@@ -244,18 +248,14 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
 
             @Override
             public void onSuccess() {
-                // logic goes to onReceive()
+                // onReceive() above will receive an intent if appropriate
                 Log.d(TAG, "Connect successful for: " + config.deviceAddress);
-                //Log.d(TAG, "@@@ Pause discovering peers for now.");
-                //NDNController.getInstance().stopDiscoveringPeers();
             }
 
             @Override
             public void onFailure(int reason) {
-                //Toast.makeText(mActivity, "Connect failed for " + config.deviceAddress,
-                //        Toast.LENGTH_SHORT).show();
-
-                // remove log of this device from connectedPeers
+                // remove log of this device from connectedPeers, if it had
+                // been previously added
                 mController.getConnectedPeers().remove(config.deviceAddress);
             }
         });
@@ -266,7 +266,6 @@ public class WDBroadcastReceiver extends BroadcastReceiver {
      * normal operation.
      */
     public static void cleanUp() {
-        //connectedPeers.clear();
         myAddress = null;
         groupOwnerAddress = null;
     }

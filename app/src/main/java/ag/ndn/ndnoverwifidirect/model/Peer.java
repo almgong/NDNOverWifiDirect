@@ -1,7 +1,5 @@
 package ag.ndn.ndnoverwifidirect.model;
 
-import android.location.Address;
-
 /**
  * Represents a WifiDirect Peer.
  *

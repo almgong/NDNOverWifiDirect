@@ -22,7 +22,7 @@ import java.util.List;
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 
 /**
- * Handle OnInterest events for probe interests.
+ * Handle OnInterest events for incoming probe interests.
  *
  * Created by allengong on 11/12/16.
  */
