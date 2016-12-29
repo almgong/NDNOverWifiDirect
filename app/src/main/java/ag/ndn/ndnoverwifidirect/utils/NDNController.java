@@ -86,7 +86,7 @@ public class NDNController {
     private HashMap<String, Peer> connectedPeers;                   // { deviceAddress(MAC) : PeerInstance, ... }, contains MAC and device name
     private HashMap<String, Peer> peersMap;                         // { peerIp : PeerInstance }, contains at least Face id info
 
-    // single Face instance at localhost, not to be used outside of this class
+    // single localhost Face, to be used within this library (NFD communication)
     private final Face mFace = new Face("localhost");
 
     /**

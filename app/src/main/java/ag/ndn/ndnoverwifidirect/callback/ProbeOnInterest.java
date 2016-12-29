@@ -63,7 +63,7 @@ public class ProbeOnInterest implements NDNCallBackOnInterest {
             });
         }
 
-        // enumerate RIB, look for all /ndn/wifidirect/* data prefixes, return to user as described in slides
+        // enumerate FIB, look for all non /localhop and /localhost entries
         try {
             // set of prefixes to return to interest sender
             HashSet<String> prefixesToReturn = new HashSet<>();
