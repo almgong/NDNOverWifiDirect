@@ -1,6 +1,5 @@
 package ag.ndn.ndnoverwifidirect.callback;
 
-import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 
 import com.intel.jndn.management.Nfdc;

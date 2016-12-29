@@ -5,11 +5,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
-import android.widget.Toast;
 
 import ag.ndn.ndnoverwifidirect.utils.NDNController;
 import ag.ndn.ndnoverwifidirect.utils.WDBroadcastReceiver;

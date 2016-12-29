@@ -1,6 +1,5 @@
 package ag.ndn.ndnoverwifidirect.utils;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -12,20 +11,13 @@ import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
-import android.widget.Toast;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
-import ag.ndn.ndnoverwifidirect.ConnectActivity;
 import ag.ndn.ndnoverwifidirect.callback.GenericCallback;
 import ag.ndn.ndnoverwifidirect.model.Peer;
-
-import static android.content.ContentValues.TAG;
 
 /**
  * WiFi Direct Broadcast receiver. Does not deviate too much
