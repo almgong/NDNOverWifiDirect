@@ -6,7 +6,8 @@ bundled with this project found in app/src/main/.../videosharing.
 
 The relevant files for the protocol are found in:
 
-```app/src/main/.../callback
+```
+app/src/main/.../callback
 app/src/main/.../model
 app/src/main/.../runnable
 app/src/main/.../service
