@@ -1,8 +1,20 @@
 # NDNOverWifiDirect
 
-A simple implementation of an interface that provides common access to the
-Android implementation of NFD, and affords communication between Android
-devices over WiFi Direct. Branch master-v2 holds a different underlying protocol.
+An implementation of a simple protocol for enabling NDN communication between
+WiFi Direct compatible devices. For demo purposes, there is a videosharing application
+bundled with this project found in app/src/main/.../videosharing.
 
-Currently, there is a sample application that uses this interface found
-in the src/main/.../videosharing/ package. 
+The relevant files for the protocol are found in:
+
+app/src/main/.../callback
+app/src/main/.../model
+app/src/main/.../runnable
+app/src/main/.../service
+app/src/main/.../task
+app/src/main/.../utils
+AndroidManifest.xml (for some of the WiFi needed permissions)
+
+Note that there is an example, working integration with the NFD-Android project
+[here](https://github.com/almgong/NFD-android). It has been tested with API level
+19.
+
